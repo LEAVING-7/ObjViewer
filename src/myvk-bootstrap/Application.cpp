@@ -53,8 +53,8 @@ void Application::initialize() {
 
   m_rendererObj = std::make_unique<Renderer>(this);
   m_rendererObj->createWindow();
-  vkb::PhysicalDeviceSelector selector{m_instanceObj.m_instance};
 
+  vkb::PhysicalDeviceSelector selector{m_instanceObj.m_instance};
   auto selection = selector.set_surface(m_rendererObj->m_surface)
                        .set_minimum_version(1, 1)
                        .add_desired_extensions(g_deviceExtensionNames)
@@ -67,6 +67,7 @@ void Application::initialize() {
   m_deviceObj->create(g_layerNames, g_deviceExtensionNames);
 
   m_allocator.create(getVkPhysicalDevice(), getVkDevice(), getVkInstance());
+
   m_rendererObj->create();
 }
 

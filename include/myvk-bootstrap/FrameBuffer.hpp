@@ -34,7 +34,11 @@ public:
   // using present semaphore
   u32 acquireNextImage(VkDevice device, VkSwapchainKHR swapchain, u64 timeout);
 
-  inline void       updateFrameCount();
-  inline FrameData& currentFrameData();
+  void updateFrameCount() {
+    ++frameCount;
+  }
+  FrameData& currentFrameData() {
+    return frameData[frameCount % DATA_COUNT];
+  }
 };
 } // namespace myvk_bs

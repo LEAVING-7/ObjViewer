@@ -20,32 +20,23 @@ void Renderer::create() {
   createDepthImages();
   createSwapchain();
   createRenderPass(true);
-  createFrameBuffer(true);
   createShaders();
   createDefaultPipeline();
-  createCommand();
+  createFrameBuffer(true);
 }
 
 void Renderer::destroy() {
   vkDeviceWaitIdle(*m_application);
 
-  destroyCommand();
-  destroy1(*m_application, m_renderFence, m_renderSemaphore,
-           m_presentSemaphore);
+  destroyFrameBuffer();
   destroyDefaultPipeline();
   destroyShaders();
-  destroyFrameBuffer();
   destroyRenderPass();
   destroySwapchain();
   destroyDepthImages();
 }
 
-void Renderer::prepare() {
-  m_presentSemaphore.create(*m_application, 0);
-  m_renderSemaphore.create(*m_application, 0);
-
-  m_renderFence.create(*m_application, VK_FENCE_CREATE_SIGNALED_BIT);
-}
+void Renderer::prepare() {}
 
 void Renderer::render() {
   glfwPollEvents();
@@ -105,7 +96,7 @@ void Renderer::render() {
   };
 
   vkQueueSubmit(m_graphicQueue, 1, &submitInfo, currentData.renderFence);
-  
+
   VkPresentInfoKHR presentInfo{
       .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
       .pNext              = nullptr,
@@ -285,9 +276,12 @@ void Renderer::destroyFrameBuffer() {
 }
 
 void Renderer::createSwapchain() {
-  m_swapchainObj =
-      std::make_unique<Swapchain>(&m_application->m_deviceObj->m_device);
-  m_swapchainObj->create(m_windowExtent.width, m_windowExtent.height);
+  m_graphicQueueIndex = m_application->m_deviceObj->m_device
+                            .get_queue_index(vkb::QueueType::graphics)
+                            .value();
+  m_swapchainObj = std::make_unique<Swapchain>();
+  m_swapchainObj->create(m_application->m_deviceObj.get(), m_windowExtent.width,
+                         m_windowExtent.height);
 }
 
 void Renderer::destroySwapchain() {
@@ -369,38 +363,4 @@ void Renderer::destroyDefaultPipeline() {
   vkDestroyPipeline(m_application->getVkDevice(), m_defaultPipeline, nullptr);
 }
 
-void Renderer::createCommand() {
-  m_graphicQueueIndex = m_application->m_deviceObj->m_device
-                            .get_queue_index(vkb::QueueType::graphics)
-                            .value();
-  m_graphicQueue =
-      m_application->m_deviceObj->m_device.get_queue(vkb::QueueType::graphics)
-          .value();
-
-  VkCommandPoolCreateInfo commandPoolCI{
-      .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .pNext            = nullptr,
-      .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-      .queueFamilyIndex = m_graphicQueueIndex,
-  };
-  auto result =
-      vkCreateCommandPool(m_application->getVkDevice(), &commandPoolCI, nullptr,
-                          &m_mainCommandPool);
-  assert(result == VK_SUCCESS);
-
-  VkCommandBufferAllocateInfo cmdAI{
-      .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-      .pNext              = nullptr,
-      .commandPool        = m_mainCommandPool,
-      .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-      .commandBufferCount = 1,
-  };
-  vkAllocateCommandBuffers(m_application->getVkDevice(), &cmdAI,
-                           &m_mainCommandBuffer);
-}
-
-void Renderer::destroyCommand() {
-  vkDestroyCommandPool(m_application->getVkDevice(), m_mainCommandPool,
-                       nullptr);
-}
 } // namespace myvk_bs

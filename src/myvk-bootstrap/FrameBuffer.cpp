@@ -64,11 +64,4 @@ u32 Framebuffer::acquireNextImage(VkDevice device, VkSwapchainKHR swapchain,
                         &imageIdx);
   return imageIdx;
 }
-
-Framebuffer::FrameData& Framebuffer::currentFrameData() {
-  return frameData[frameCount % DATA_COUNT];
-}
-void Framebuffer::updateFrameCount() {
-  ++frameCount;
-}
 } // namespace myvk_bs

@@ -51,21 +51,14 @@ private:
   void createDefaultPipeline();
   void destroyDefaultPipeline();
 
-  // TODO remove temp function
-
-  void createCommand();
-  void destroyCommand();
-
 public:
   VkExtent2D   m_windowExtent;
   GLFWwindow*  m_window;
   VkSurfaceKHR m_surface;
 
-  VkCommandPool   m_cmdPool;
-  VkFormat        m_depthImageFormat;
-  AllocatedImage  m_depthImage;
-  VkImageView     m_depthImageView;
-  VkCommandBuffer m_cmdVertexBuffer;
+  VkFormat       m_depthImageFormat;
+  AllocatedImage m_depthImage;
+  VkImageView    m_depthImageView;
 
   VkRenderPass m_renderPass;
 
@@ -75,13 +68,8 @@ public:
   VkPipeline                              m_defaultPipeline;
   VkPipelineLayout                        m_defaultPipelineLayout;
 
-  VkQueue         m_graphicQueue;
-  u32             m_graphicQueueIndex;
-  VkCommandPool   m_mainCommandPool;
-  VkCommandBuffer m_mainCommandBuffer;
-
-  Semaphore m_presentSemaphore, m_renderSemaphore;
-  Fence     m_renderFence;
+  VkQueue m_graphicQueue;
+  u32     m_graphicQueueIndex;
 
 private:
   Application*               m_application;

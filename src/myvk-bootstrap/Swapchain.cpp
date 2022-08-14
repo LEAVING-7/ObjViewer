@@ -1,11 +1,11 @@
 #include "myvk-bootstrap/Swapchain.hpp"
 
+#include "myvk-bootstrap/Device.hpp"
 namespace myvk_bs {
-Swapchain::~Swapchain() {}
 
-void Swapchain::create(u32 width, u32 height) {
-
-  vkb::SwapchainBuilder builder{*m_device};
+void Swapchain::create(Device* device, u32 width, u32 height) {
+  vkb::SwapchainBuilder builder{device->m_gpu, device->m_device,
+                                device->m_gpu.surface};
 
   auto result = builder.use_default_format_selection()
                     .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)

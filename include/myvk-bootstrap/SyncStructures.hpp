@@ -4,7 +4,8 @@
 
 namespace myvk_bs {
 struct Fence {
-  VkFence  fence;
+  VkFence fence;
+
   void     create(VkDevice device, VkFenceCreateFlags flag);
   void     createSignaled(VkDevice device);
   void     destroy(VkDevice device);
@@ -15,8 +16,9 @@ struct Fence {
 };
 struct Semaphore {
   VkSemaphore semaphore;
-  void        create(VkDevice device, VkSemaphoreCreateFlags flag);
-  void        destroy(VkDevice device);
+
+  void create(VkDevice device);
+  void destroy(VkDevice device);
 
   MYVK_CONVERT_OP(Semaphore, semaphore);
   MYVK_ADDRESS_OP(Semaphore, semaphore);

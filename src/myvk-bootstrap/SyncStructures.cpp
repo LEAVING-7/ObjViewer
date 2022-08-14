@@ -22,11 +22,11 @@ VkResult Fence::reset(VkDevice device) {
   return vkResetFences(device, 1, &fence);
 }
 
-void Semaphore::create(VkDevice device, VkSemaphoreCreateFlags flag) {
+void Semaphore::create(VkDevice device) {
   VkSemaphoreCreateInfo CI{
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
       .pNext = nullptr,
-      .flags = flag,
+      .flags = 0,
   };
   vkCreateSemaphore(device, &CI, nullptr, &semaphore);
 }
