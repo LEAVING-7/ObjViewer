@@ -18,9 +18,7 @@ Renderer::~Renderer() {}
 
 void Renderer::create() {
   createDepthImages();
-  m_swapchainObj =
-      std::make_unique<Swapchain>(&m_application->m_deviceObj->m_device);
-  m_swapchainObj->create(m_windowExtent.width, m_windowExtent.height);
+  createSwapchain();
   createRenderPass(true);
   createFrameBuffer(true);
   createShaders();
@@ -29,14 +27,16 @@ void Renderer::create() {
 }
 
 void Renderer::destroy() {
+  vkDeviceWaitIdle(*m_application);
+
   destroyCommand();
-  destroy1(m_application->getVkDevice(), m_renderFence, m_renderSemaphore,
+  destroy1(*m_application, m_renderFence, m_renderSemaphore,
            m_presentSemaphore);
   destroyDefaultPipeline();
   destroyShaders();
   destroyFrameBuffer();
   destroyRenderPass();
-  m_swapchainObj->destroy();
+  destroySwapchain();
   destroyDepthImages();
 }
 
@@ -49,30 +49,19 @@ void Renderer::prepare() {
 
 void Renderer::render() {
   glfwPollEvents();
+  m_frameBuffer.updateFrameCount();
+  auto& currentData = m_frameBuffer.currentFrameData();
 
-  vkWaitForFences(*m_application, 1, &m_renderFence.fence, true, 10000000000);
+  vkWaitForFences(*m_application, 1, &currentData.renderFence, true, 1'000'000);
+  currentData.renderFence.reset(*m_application);
 
-  m_renderFence.reset(*m_application);
+  u32 swapchainImgIdx = m_frameBuffer.acquireNextImage(
+      *m_application, *m_swapchainObj, 1'000'000);
 
-  // vkResetCommandBuffer(m_mainCommandBuffer, 0);
-  u32 swapchainImgIdx;
-  vkAcquireNextImageKHR(*m_application, m_swapchainObj->m_swapchain,
-                        100000000000, m_presentSemaphore, nullptr,
-                        &swapchainImgIdx);
-
-  VkCommandBuffer cmd = m_mainCommandBuffer;
-
-  VkCommandBufferBeginInfo cmdBI{
-      .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-      .pNext            = nullptr,
-      .flags            = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-      .pInheritanceInfo = nullptr,
-  };
-
-  vkBeginCommandBuffer(cmd, &cmdBI);
+  currentData.cmdBuffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
   VkClearValue colorClear{
-      .color = {{0.f, 0.f, 1.f, 1.f}},
+      .color = {{0.f, 0.f, 0.3f, 1.f}},
   };
 
   VkClearValue depthClear{
@@ -84,21 +73,21 @@ void Renderer::render() {
       .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       .pNext       = nullptr,
       .renderPass  = m_renderPass,
-      .framebuffer = m_framebuffers[swapchainImgIdx],
+      .framebuffer = m_frameBuffer.framebuffers[swapchainImgIdx],
       .renderArea =
           {
               .offset = {0, 0},
               .extent = m_windowExtent,
           },
-      .clearValueCount = std::size(clearValue),
+      .clearValueCount = 2,
       .pClearValues    = clearValue,
   };
 
-  vkCmdBeginRenderPass(cmd, &renderPassBI, VK_SUBPASS_CONTENTS_INLINE);
+  currentData.cmdBuffer.beginRenderPass(&renderPassBI,
+                                        VK_SUBPASS_CONTENTS_INLINE);
 
-  vkCmdEndRenderPass(cmd);
-
-  vkEndCommandBuffer(cmd);
+  currentData.cmdBuffer.endRenderPass();
+  currentData.cmdBuffer.end();
 
   VkPipelineStageFlags waitStage =
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -107,19 +96,21 @@ void Renderer::render() {
       .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .pNext                = nullptr,
       .waitSemaphoreCount   = 1,
-      .pWaitSemaphores      = &m_presentSemaphore.semaphore,
+      .pWaitSemaphores      = &currentData.presentSemaphore,
       .pWaitDstStageMask    = &waitStage,
       .commandBufferCount   = 1,
-      .pCommandBuffers      = &cmd,
+      .pCommandBuffers      = &currentData.cmdBuffer,
       .signalSemaphoreCount = 1,
-      .pSignalSemaphores    = &m_renderSemaphore.semaphore,
+      .pSignalSemaphores    = &currentData.renderSemaphore,
   };
-  vkQueueSubmit(m_graphicQueue, 1, &submitInfo, m_renderFence);
+
+  vkQueueSubmit(m_graphicQueue, 1, &submitInfo, currentData.renderFence);
+  
   VkPresentInfoKHR presentInfo{
       .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
       .pNext              = nullptr,
       .waitSemaphoreCount = 1,
-      .pWaitSemaphores    = &m_renderSemaphore.semaphore,
+      .pWaitSemaphores    = &currentData.renderSemaphore,
       .swapchainCount     = 1,
       .pSwapchains        = &m_swapchainObj->m_swapchain.swapchain,
       .pImageIndices      = &swapchainImgIdx,
@@ -144,7 +135,6 @@ void Renderer::createWindow(u32 width, u32 height) {
   glfwSetKeyCallback(m_window, windowKeyCallback);
   glfwSetCursorPosCallback(m_window, windowCursorPosCallback);
 }
-
 void Renderer::destroyWindow() {
   vkDestroySurfaceKHR(m_application->getVkInstance(), m_surface, nullptr);
   glfwDestroyWindow(m_window);
@@ -199,7 +189,6 @@ void Renderer::createDepthImages() {
   vkCreateImageView(m_application->getVkDevice(), &depthImageViewCI, nullptr,
                     &m_depthImageView);
 }
-
 void Renderer::destroyDepthImages() {
   vkDestroyImageView(m_application->getVkDevice(), m_depthImageView, nullptr);
   m_application->m_allocator.destroyImage(m_depthImage);
@@ -281,40 +270,28 @@ void Renderer::createRenderPass(bool includeDepth, bool clear) {
                                    nullptr, &m_renderPass);
   assert(result == VK_SUCCESS);
 }
-
 void Renderer::destroyRenderPass() {
   vkDestroyRenderPass(m_application->getVkDevice(), m_renderPass, nullptr);
 }
 
 void Renderer::createFrameBuffer(bool includeDepth) {
-  VkFramebufferCreateInfo fbCI{
-      .sType      = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-      .pNext      = nullptr,
-      .flags      = 0,
-      .renderPass = m_renderPass,
-      .width      = m_windowExtent.width,
-      .height     = m_windowExtent.height,
-      .layers     = 1,
-  };
-
-  u32 swapchainSize = u32(m_swapchainObj->m_images.size());
-  LOG_INFO("swapchain size:{}", swapchainSize);
-  m_framebuffers.resize(swapchainSize);
-
-  for (u32 i = 0; i < swapchainSize; ++i) {
-    VkImageView attachments[2]{m_swapchainObj->m_imageViews[i],
-                               m_depthImageView};
-    fbCI.attachmentCount = 2;
-    fbCI.pAttachments    = attachments;
-    auto result = vkCreateFramebuffer(m_application->getVkDevice(), &fbCI,
-                                      nullptr, &m_framebuffers[i]);
-    assert(result == VK_SUCCESS);
-  }
+  m_frameBuffer.create(
+      *m_application, m_swapchainObj->m_swapchain, m_renderPass, m_windowExtent,
+      m_swapchainObj->m_imageViews, m_depthImageView, m_graphicQueueIndex);
 }
+
 void Renderer::destroyFrameBuffer() {
-  for (auto& framebuffer : m_framebuffers) {
-    vkDestroyFramebuffer(m_application->getVkDevice(), framebuffer, nullptr);
-  }
+  m_frameBuffer.destroy(*m_application);
+}
+
+void Renderer::createSwapchain() {
+  m_swapchainObj =
+      std::make_unique<Swapchain>(&m_application->m_deviceObj->m_device);
+  m_swapchainObj->create(m_windowExtent.width, m_windowExtent.height);
+}
+
+void Renderer::destroySwapchain() {
+  m_swapchainObj->destroy();
 }
 
 void Renderer::createShaders() {
@@ -385,6 +362,7 @@ void Renderer::createDefaultPipeline() {
           .build(m_application->getVkDevice(), m_renderPass,
                  m_defaultPipelineLayout);
 }
+
 void Renderer::destroyDefaultPipeline() {
   vkDestroyPipelineLayout(m_application->getVkDevice(), m_defaultPipelineLayout,
                           nullptr);
@@ -402,7 +380,7 @@ void Renderer::createCommand() {
   VkCommandPoolCreateInfo commandPoolCI{
       .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .pNext            = nullptr,
-      .flags            = 0,
+      .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
       .queueFamilyIndex = m_graphicQueueIndex,
   };
   auto result =
@@ -420,6 +398,7 @@ void Renderer::createCommand() {
   vkAllocateCommandBuffers(m_application->getVkDevice(), &cmdAI,
                            &m_mainCommandBuffer);
 }
+
 void Renderer::destroyCommand() {
   vkDestroyCommandPool(m_application->getVkDevice(), m_mainCommandPool,
                        nullptr);

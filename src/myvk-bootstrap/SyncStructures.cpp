@@ -1,6 +1,10 @@
 
 #include "myvk-bootstrap/SyncStructures.hpp"
 namespace myvk_bs {
+void Fence::createSignaled(VkDevice device) {
+  create(device, VK_FENCE_CREATE_SIGNALED_BIT);
+}
+
 void Fence::create(VkDevice device, VkFenceCreateFlags flag) {
   VkFenceCreateInfo CI{
       .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,

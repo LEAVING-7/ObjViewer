@@ -17,5 +17,7 @@ public:
 
   void create(u32 width, u32 height);
   void destroy();
+
+  MYVK_CONVERT_OP(SwapchainKHR, m_swapchain);
 };
 } // namespace myvk_bs

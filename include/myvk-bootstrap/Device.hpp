@@ -12,6 +12,8 @@ public:
   ~Device() = default;
   void create(std::vector<ccstr>& layers, std::vector<ccstr>& extensions);
   void destroy();
+
+  MYVK_CONVERT_OP(Device, m_device);
 };
 
 } // namespace myvk_bs

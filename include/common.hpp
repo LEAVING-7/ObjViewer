@@ -53,6 +53,16 @@ using ccstr = char const*;
     }                                                                          \
   } while (0);
 
+#define MYVK_CONVERT_OP(name, value)                                           \
+  operator Vk##name() {                                                        \
+    return value;                                                              \
+  }
+
+#define MYVK_ADDRESS_OP(name, value)                                           \
+  Vk##name *operator&() {                                                       \
+    return &value;                                                             \
+  }
+
 std::optional<std::vector<u8>> readFromFile(std::string const& filename,
                                             ccstr              mode);
 
@@ -62,8 +72,18 @@ template <
 void destroy(Destroyable&&... destroyList) {
   (destroyList.destroy(), ...);
 }
+template <
+    typename... Creatable,
+    typename = std::void_t<decltype(std::declval<Creatable...>().create())>>
+void create(Creatable&&... destroyList) {
+  (destroyList.create(), ...);
+}
 
 template <typename FirstArgT, typename... Destroyable>
 void destroy1(FirstArgT&& firstArg, Destroyable&&... destroyList) {
   (destroyList.destroy(std::forward<FirstArgT>(firstArg)), ...);
+}
+template <typename FirstArgT, typename... Creatable>
+void create1(FirstArgT&& firstArg, Creatable&&... destroyList) {
+  (destroyList.create(std::forward<FirstArgT>(firstArg)), ...);
 }

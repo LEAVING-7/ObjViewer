@@ -1,14 +1,15 @@
 #pragma once
-
 #include "common.hpp"
 #include "pch.hpp"
 
 #include <unordered_map>
 
 #include "myvk-bootstrap/BufferAllocator.hpp"
+#include "myvk-bootstrap/FrameBuffer.hpp"
 #include "myvk-bootstrap/Shader.hpp"
 #include "myvk-bootstrap/Swapchain.hpp"
 #include "myvk-bootstrap/SyncStructures.hpp"
+
 namespace myvk_bs {
 class Application;
 class Device;
@@ -29,8 +30,10 @@ public:
 
   void createWindow(u32 width = 800, u32 height = 600);
   void destroyWindow();
-
   bool windowShouldClose();
+
+  void createSwapchain();
+  void destroySwapchain();
 
 private:
   void createDepthImages();
@@ -64,8 +67,9 @@ public:
   VkImageView     m_depthImageView;
   VkCommandBuffer m_cmdVertexBuffer;
 
-  VkRenderPass               m_renderPass;
-  std::vector<VkFramebuffer> m_framebuffers;
+  VkRenderPass m_renderPass;
+
+  Framebuffer m_frameBuffer;
 
   std::unique_ptr<GraphicPipelineBuilder> m_defaultPipelineBuilder;
   VkPipeline                              m_defaultPipeline;
