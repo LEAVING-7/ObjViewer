@@ -55,6 +55,9 @@ struct GraphicPipelineBuilder {
   GraphicPipelineBuilder& setShader(std::vector<VkPipelineShaderStageCreateInfo>&& shaders);
 
   GraphicPipelineBuilder& noColorBlend(VkColorComponentFlags colorWriteMask);
+
+
+  // TODO 重构成vector
   GraphicPipelineBuilder&
   setDynamic(uint32_t              dynamicStateCount = 0,
              const VkDynamicState* pDynamicStates    = nullptr);
@@ -107,7 +110,7 @@ struct GraphicPipelineBuilder {
                                            float       maxDepthBounds);
   GraphicPipelineBuilder&
   setViewPortAndScissor(std::vector<VkViewport>&& viewports,
-                        std::vector<VkRect2D>&&   scissor);
+                        std::vector<VkRect2D>&&   scissors);
   GraphicPipelineBuilder& setViewPortAndScissorCount(size_t viewportCount,
                                                      size_t scissorCount);
 };

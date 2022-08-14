@@ -21,15 +21,17 @@ void Renderer::create() {
   m_swapchainObj =
       std::make_unique<Swapchain>(&m_application->m_deviceObj->m_device);
   m_swapchainObj->create(m_windowExtent.width, m_windowExtent.height);
-  // createRenderPass(true);
-  // createShaders();
-  // createDefaultPipeline();
+  createRenderPass(true);
+  createFrameBuffer(true);
+  createShaders();
+  createDefaultPipeline();
 }
 
 void Renderer::destroy() {
-  // destroyDefaultPipeline();
-  // destroyShaders();
-  // destroyRenderPass();
+  destroyDefaultPipeline();
+  destroyShaders();
+  destroyFrameBuffer();
+  destroyRenderPass();
   m_swapchainObj->destroy();
   destroyDepthImages();
 }
@@ -199,9 +201,11 @@ void Renderer::createFrameBuffer(bool includeDepth) {
       .renderPass = m_renderPass,
       .width      = m_windowExtent.width,
       .height     = m_windowExtent.height,
+      .layers     = 1,
   };
 
   u32 swapchainSize = u32(m_swapchainObj->m_images.size());
+  LOG_INFO("swapchain size:{}", swapchainSize);
   m_framebuffers.resize(swapchainSize);
 
   for (u32 i = 0; i < swapchainSize; ++i) {
@@ -292,5 +296,34 @@ void Renderer::destroyDefaultPipeline() {
   vkDestroyPipelineLayout(m_application->getVkDevice(), m_defaultPipelineLayout,
                           nullptr);
   vkDestroyPipeline(m_application->getVkDevice(), m_defaultPipeline, nullptr);
+}
+
+void Renderer::createCommand() {
+  VkCommandPoolCreateInfo commandPoolCI{
+      .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+      .pNext            = nullptr,
+      .flags            = 0,
+      .queueFamilyIndex = m_application->m_deviceObj->m_device
+                              .get_queue_index(vkb::QueueType::graphics)
+                              .value(),
+  };
+  auto result =
+      vkCreateCommandPool(m_application->getVkDevice(), &commandPoolCI, nullptr,
+                          &m_mainCommandPool);
+  assert(result == VK_SUCCESS);
+
+  VkCommandBufferAllocateInfo cmdAI{
+      .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+      .pNext              = nullptr,
+      .commandPool        = m_mainCommandPool,
+      .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+      .commandBufferCount = 1,
+  };
+  vkAllocateCommandBuffers(m_application->getVkDevice(), &cmdAI, &m_mainCommandBuffer);
+
+}
+void Renderer::destroyCommand() {
+  vkDestroyCommandPool(m_application->getVkDevice(), m_mainCommandPool,
+                       nullptr);
 }
 } // namespace myvk_bs

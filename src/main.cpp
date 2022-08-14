@@ -1,6 +1,20 @@
 #include "myvk-bootstrap/Application.hpp"
 #include "pch.hpp"
 
+#include <memory>
+
+int   allocCnt   = 0;
+int   deallocCnt = 0;
+void* operator new(size_t size) {
+  ++allocCnt;
+  return malloc(size);
+}
+
+void operator delete(void* ptr) noexcept {
+  ++deallocCnt;
+  free(ptr);
+}
+
 std::vector g_instanceExtensionNames{
     VK_KHR_SURFACE_EXTENSION_NAME,
     VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
@@ -13,17 +27,20 @@ std::vector g_deviceExtensionNames{
 };
 
 int main() {
-  myvk_bs::Application *appObj = myvk_bs::Application::GetInstance();
-  appObj->initialize();
-  LOG_INFO("initialize successfully");
-  
-  appObj->prepare();
-  LOG_INFO("prepare successfully");
+  {
+    myvk_bs::Application* appObj = myvk_bs::Application::GetInstance();
+    appObj->initialize();
+    LOG_INFO("initialize successfully");
 
-  bool shouldWindowClose = false;
-  while (!shouldWindowClose) {
-    appObj->update();
-    shouldWindowClose = appObj->render();
+    appObj->prepare();
+    LOG_INFO("prepare successfully");
+
+    bool shouldWindowClose = false;
+    while (!shouldWindowClose) {
+      appObj->update();
+      shouldWindowClose = appObj->render();
+    }
+    appObj->deInitialize();
   }
-  appObj->deInitialize();
+  LOG_INFO("{} {}", allocCnt, deallocCnt);
 }

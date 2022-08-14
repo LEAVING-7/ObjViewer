@@ -48,6 +48,12 @@ private:
   void createDefaultPipeline();
   void destroyDefaultPipeline();
 
+
+  // TODO remove temp function
+
+  void createCommand() ;
+  void destroyCommand();
+
 public:
   VkExtent2D   m_windowExtent;
   GLFWwindow*  m_window;
@@ -65,6 +71,9 @@ public:
   std::unique_ptr<GraphicPipelineBuilder> m_defaultPipelineBuilder;
   VkPipeline                              m_defaultPipeline;
   VkPipelineLayout                        m_defaultPipelineLayout;
+
+  VkCommandPool   m_mainCommandPool;
+  VkCommandBuffer m_mainCommandBuffer;
 
 private:
   Application*               m_application;
