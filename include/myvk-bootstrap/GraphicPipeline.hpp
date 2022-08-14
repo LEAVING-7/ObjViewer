@@ -6,6 +6,5 @@ namespace myvk_bs {
 class GraphicPipeline {
 public:
   VkPipelineCache m_cache;
-  
 };
 } // namespace myvk_bs

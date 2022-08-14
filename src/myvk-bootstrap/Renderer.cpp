@@ -25,9 +25,13 @@ void Renderer::create() {
   createFrameBuffer(true);
   createShaders();
   createDefaultPipeline();
+  createCommand();
 }
 
 void Renderer::destroy() {
+  destroyCommand();
+  destroy1(m_application->getVkDevice(), m_renderFence, m_renderSemaphore,
+           m_presentSemaphore);
   destroyDefaultPipeline();
   destroyShaders();
   destroyFrameBuffer();
@@ -36,9 +40,98 @@ void Renderer::destroy() {
   destroyDepthImages();
 }
 
-void Renderer::prepare() {}
-void Renderer::render() { glfwPollEvents(); }
-bool Renderer::windowShouldClose() { return glfwWindowShouldClose(m_window); }
+void Renderer::prepare() {
+  m_presentSemaphore.create(*m_application, 0);
+  m_renderSemaphore.create(*m_application, 0);
+
+  m_renderFence.create(*m_application, VK_FENCE_CREATE_SIGNALED_BIT);
+}
+
+void Renderer::render() {
+  glfwPollEvents();
+
+  vkWaitForFences(*m_application, 1, &m_renderFence.fence, true, 10000000000);
+
+  m_renderFence.reset(*m_application);
+
+  // vkResetCommandBuffer(m_mainCommandBuffer, 0);
+  u32 swapchainImgIdx;
+  vkAcquireNextImageKHR(*m_application, m_swapchainObj->m_swapchain,
+                        100000000000, m_presentSemaphore, nullptr,
+                        &swapchainImgIdx);
+
+  VkCommandBuffer cmd = m_mainCommandBuffer;
+
+  VkCommandBufferBeginInfo cmdBI{
+      .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      .pNext            = nullptr,
+      .flags            = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+      .pInheritanceInfo = nullptr,
+  };
+
+  vkBeginCommandBuffer(cmd, &cmdBI);
+
+  VkClearValue colorClear{
+      .color = {{0.f, 0.f, 1.f, 1.f}},
+  };
+
+  VkClearValue depthClear{
+      .depthStencil = {.depth = 1.f},
+  };
+  VkClearValue clearValue[2] = {colorClear, depthClear};
+
+  VkRenderPassBeginInfo renderPassBI{
+      .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+      .pNext       = nullptr,
+      .renderPass  = m_renderPass,
+      .framebuffer = m_framebuffers[swapchainImgIdx],
+      .renderArea =
+          {
+              .offset = {0, 0},
+              .extent = m_windowExtent,
+          },
+      .clearValueCount = std::size(clearValue),
+      .pClearValues    = clearValue,
+  };
+
+  vkCmdBeginRenderPass(cmd, &renderPassBI, VK_SUBPASS_CONTENTS_INLINE);
+
+  vkCmdEndRenderPass(cmd);
+
+  vkEndCommandBuffer(cmd);
+
+  VkPipelineStageFlags waitStage =
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+  VkSubmitInfo submitInfo{
+      .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      .pNext                = nullptr,
+      .waitSemaphoreCount   = 1,
+      .pWaitSemaphores      = &m_presentSemaphore.semaphore,
+      .pWaitDstStageMask    = &waitStage,
+      .commandBufferCount   = 1,
+      .pCommandBuffers      = &cmd,
+      .signalSemaphoreCount = 1,
+      .pSignalSemaphores    = &m_renderSemaphore.semaphore,
+  };
+  vkQueueSubmit(m_graphicQueue, 1, &submitInfo, m_renderFence);
+  VkPresentInfoKHR presentInfo{
+      .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+      .pNext              = nullptr,
+      .waitSemaphoreCount = 1,
+      .pWaitSemaphores    = &m_renderSemaphore.semaphore,
+      .swapchainCount     = 1,
+      .pSwapchains        = &m_swapchainObj->m_swapchain.swapchain,
+      .pImageIndices      = &swapchainImgIdx,
+  };
+
+  vkQueuePresentKHR(m_graphicQueue, &presentInfo);
+}
+
+bool Renderer::windowShouldClose() {
+  return glfwWindowShouldClose(m_window);
+}
+
 void Renderer::createWindow(u32 width, u32 height) {
   m_windowExtent = {width, height};
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -299,13 +392,18 @@ void Renderer::destroyDefaultPipeline() {
 }
 
 void Renderer::createCommand() {
+  m_graphicQueueIndex = m_application->m_deviceObj->m_device
+                            .get_queue_index(vkb::QueueType::graphics)
+                            .value();
+  m_graphicQueue =
+      m_application->m_deviceObj->m_device.get_queue(vkb::QueueType::graphics)
+          .value();
+
   VkCommandPoolCreateInfo commandPoolCI{
       .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .pNext            = nullptr,
       .flags            = 0,
-      .queueFamilyIndex = m_application->m_deviceObj->m_device
-                              .get_queue_index(vkb::QueueType::graphics)
-                              .value(),
+      .queueFamilyIndex = m_graphicQueueIndex,
   };
   auto result =
       vkCreateCommandPool(m_application->getVkDevice(), &commandPoolCI, nullptr,
@@ -319,8 +417,8 @@ void Renderer::createCommand() {
       .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
       .commandBufferCount = 1,
   };
-  vkAllocateCommandBuffers(m_application->getVkDevice(), &cmdAI, &m_mainCommandBuffer);
-
+  vkAllocateCommandBuffers(m_application->getVkDevice(), &cmdAI,
+                           &m_mainCommandBuffer);
 }
 void Renderer::destroyCommand() {
   vkDestroyCommandPool(m_application->getVkDevice(), m_mainCommandPool,

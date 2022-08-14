@@ -151,12 +151,12 @@ GraphicPipelineBuilder& GraphicPipelineBuilder::setDeepNoStencil(
     VkBool32 depthBoundsTestEnable, float minDepthBounds,
     float maxDepthBounds) {
   this->depthStencil = VkPipelineDepthStencilStateCreateInfo{
-      .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-      .pNext            = nullptr,
-      .flags            = 0,
-      .depthTestEnable  = VK_TRUE,
-      .depthWriteEnable = depthWriteEnable,
-      .depthCompareOp   = depthCompareOp,
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+      .pNext = nullptr,
+      .flags = 0,
+      .depthTestEnable       = VK_TRUE,
+      .depthWriteEnable      = depthWriteEnable,
+      .depthCompareOp        = depthCompareOp,
       .depthBoundsTestEnable = depthBoundsTestEnable,
       .stencilTestEnable     = VK_FALSE,
       .minDepthBounds        = minDepthBounds,

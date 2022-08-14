@@ -1,8 +1,8 @@
 #include "myvk-bootstrap/Instance.hpp"
 
 namespace myvk_bs {
-void Instance::create(std::vector<ccstr> &layers,
-                      std::vector<ccstr> &extensions, ccstr appName,
+void Instance::create(std::vector<ccstr>& layers,
+                      std::vector<ccstr>& extensions, ccstr appName,
                       bool enableValidationLayer) {
   m_enableValidationLayer = enableValidationLayer;
   vkb::InstanceBuilder builder{};
@@ -28,5 +28,7 @@ void Instance::create(std::vector<ccstr> &layers,
   assert(result.has_value());
   m_instance = result.value();
 }
-void Instance::destroy() { vkb::destroy_instance(m_instance); }
+void Instance::destroy() {
+  vkb::destroy_instance(m_instance);
+}
 } // namespace myvk_bs

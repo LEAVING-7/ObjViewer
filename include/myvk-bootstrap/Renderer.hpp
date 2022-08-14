@@ -8,7 +8,7 @@
 #include "myvk-bootstrap/BufferAllocator.hpp"
 #include "myvk-bootstrap/Shader.hpp"
 #include "myvk-bootstrap/Swapchain.hpp"
-
+#include "myvk-bootstrap/SyncStructures.hpp"
 namespace myvk_bs {
 class Application;
 class Device;
@@ -48,10 +48,9 @@ private:
   void createDefaultPipeline();
   void destroyDefaultPipeline();
 
-
   // TODO remove temp function
 
-  void createCommand() ;
+  void createCommand();
   void destroyCommand();
 
 public:
@@ -72,8 +71,13 @@ public:
   VkPipeline                              m_defaultPipeline;
   VkPipelineLayout                        m_defaultPipelineLayout;
 
+  VkQueue         m_graphicQueue;
+  u32             m_graphicQueueIndex;
   VkCommandPool   m_mainCommandPool;
   VkCommandBuffer m_mainCommandBuffer;
+
+  Semaphore m_presentSemaphore, m_renderSemaphore;
+  Fence     m_renderFence;
 
 private:
   Application*               m_application;

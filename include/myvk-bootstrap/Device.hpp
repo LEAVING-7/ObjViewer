@@ -7,10 +7,10 @@ class Device {
 public:
   vkb::Device         m_device;
   vkb::PhysicalDevice m_gpu;
-  
+
   Device(vkb::PhysicalDevice gpu) : m_gpu(std::move(gpu)) {}
   ~Device() = default;
-  void create(std::vector<ccstr> &layers, std::vector<ccstr> &extensions);
+  void create(std::vector<ccstr>& layers, std::vector<ccstr>& extensions);
   void destroy();
 };
 

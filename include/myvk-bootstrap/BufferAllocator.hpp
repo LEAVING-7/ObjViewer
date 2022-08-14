@@ -20,14 +20,14 @@ public:
   void create(VkPhysicalDevice gpu, VkDevice device, VkInstance instance);
   void destroy();
 
-  AllocatedImage createImage(VkImageCreateInfo       *pInfo,
-                             VmaAllocationCreateInfo *pAllocCreateInfo,
-                             VmaAllocationInfo       *pAllocInfo = nullptr);
+  AllocatedImage createImage(VkImageCreateInfo*       pInfo,
+                             VmaAllocationCreateInfo* pAllocCreateInfo,
+                             VmaAllocationInfo*       pAllocInfo = nullptr);
   void           destroyImage(AllocatedImage image);
 
-  AllocatedBuffer createBuffer(VkBufferCreateInfo      *pInfo,
-                               VmaAllocationCreateInfo *pAllocCreateInfo,
-                               VmaAllocationInfo       *pAllocInfo = nullptr);
+  AllocatedBuffer createBuffer(VkBufferCreateInfo*      pInfo,
+                               VmaAllocationCreateInfo* pAllocCreateInfo,
+                               VmaAllocationInfo*       pAllocInfo = nullptr);
   void            destroyBuffer(AllocatedBuffer buffer);
 };
 

@@ -10,7 +10,7 @@ using i8    = std::int8_t;
 using i16   = std::int16_t;
 using i32   = std::int32_t;
 using i64   = std::int64_t;
-using ccstr = char const *;
+using ccstr = char const*;
 
 #define FILE_LINE_FMT "[{}:{}] "
 #define FILE_LINE_ARG __FILE__, __LINE__
@@ -53,5 +53,17 @@ using ccstr = char const *;
     }                                                                          \
   } while (0);
 
-std::optional<std::vector<u8>> readFromFile(std::string const &filename,
+std::optional<std::vector<u8>> readFromFile(std::string const& filename,
                                             ccstr              mode);
+
+template <
+    typename... Destroyable,
+    typename = std::void_t<decltype(std::declval<Destroyable...>().destroy())>>
+void destroy(Destroyable&&... destroyList) {
+  (destroyList.destroy(), ...);
+}
+
+template <typename FirstArgT, typename... Destroyable>
+void destroy1(FirstArgT&& firstArg, Destroyable&&... destroyList) {
+  (destroyList.destroy(std::forward<FirstArgT>(firstArg)), ...);
+}

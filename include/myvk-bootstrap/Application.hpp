@@ -23,7 +23,7 @@ private:
   bool m_isResizing;
 
 public:
-  static Application *GetInstance();
+  static Application* GetInstance();
 
 private:
   Application();
@@ -38,10 +38,24 @@ public:
   bool render();
   void deInitialize();
 
-  VkInstance       getVkInstance() { return m_instanceObj.m_instance.instance; }
-  VkDevice         getVkDevice() { return m_deviceObj->m_device.device; }
+  VkInstance getVkInstance() {
+    return m_instanceObj.m_instance.instance;
+  }
+  VkDevice getVkDevice() {
+    return m_deviceObj->m_device.device;
+  }
   VkPhysicalDevice getVkPhysicalDevice() {
     return m_deviceObj->m_gpu.physical_device;
+  }
+
+  operator VkInstance() {
+    return getVkInstance();
+  }
+  operator VkDevice() {
+    return getVkDevice();
+  }
+  operator VkPhysicalDevice() {
+    return getVkPhysicalDevice();
   }
 };
 

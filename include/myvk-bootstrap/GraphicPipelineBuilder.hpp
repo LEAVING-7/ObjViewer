@@ -27,9 +27,13 @@ struct GraphicPipelineBuilder {
       required();
       return &value;
     }
-    operator bool() { return isInit; }
+    operator bool() {
+      return isInit;
+    }
 
-    void required() { assert(isInit); }
+    void required() {
+      assert(isInit);
+    }
   };
 
   Init<std::vector<VkPipelineShaderStageCreateInfo>> shaders;
@@ -52,10 +56,10 @@ struct GraphicPipelineBuilder {
                    GraphicPipelineBuilder* builder = nullptr,
                    VkPipelineCache         cache   = VK_NULL_HANDLE);
 
-  GraphicPipelineBuilder& setShader(std::vector<VkPipelineShaderStageCreateInfo>&& shaders);
+  GraphicPipelineBuilder&
+  setShader(std::vector<VkPipelineShaderStageCreateInfo>&& shaders);
 
   GraphicPipelineBuilder& noColorBlend(VkColorComponentFlags colorWriteMask);
-
 
   // TODO 重构成vector
   GraphicPipelineBuilder&

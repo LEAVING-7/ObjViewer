@@ -2,10 +2,10 @@
 #include "myvk-bootstrap/Application.hpp"
 namespace myvk_bs {
 
-void Shader::create(u32 *code, size_t size, ccstr entryName) {
+void Shader::create(u32* code, size_t size, ccstr entryName) {
   assert(size % 4 == 0);
 
-  auto    *app = Application::GetInstance();
+  auto*    app = Application::GetInstance();
   VkResult result;
 
   m_shaderInfo = {
@@ -30,7 +30,7 @@ void Shader::create(u32 *code, size_t size, ccstr entryName) {
 };
 
 void Shader::destroy() {
-  auto *app = Application::GetInstance();
+  auto* app = Application::GetInstance();
   vkDestroyShaderModule(app->getVkDevice(), m_shaderInfo.module, nullptr);
 }
 } // namespace myvk_bs
