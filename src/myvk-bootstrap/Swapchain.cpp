@@ -12,12 +12,9 @@ void Swapchain::create(u32 width, u32 height) {
                     .set_desired_extent(width, height)
                     .build();
   assert(result.has_value());
-  m_swapchain = std::move(result.value());
-  assert(result->get_images().has_value() &&
-         result->get_image_views().has_value());
-
-  m_images     = std::move(result->get_images().value());
-  m_imageViews = std::move(result->get_image_views().value());
+  m_swapchain = (result.value());
+  m_images     = std::move(m_swapchain.get_images().value());
+  m_imageViews = std::move(m_swapchain.get_image_views().value());
 }
 void Swapchain::destroy() {
   m_swapchain.destroy_image_views(m_imageViews);

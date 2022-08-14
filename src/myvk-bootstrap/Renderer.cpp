@@ -21,15 +21,15 @@ void Renderer::create() {
   m_swapchainObj =
       std::make_unique<Swapchain>(&m_application->m_deviceObj->m_device);
   m_swapchainObj->create(m_windowExtent.width, m_windowExtent.height);
-  createRenderPass(true);
-  createShaders();
-  createDefaultPipeline();
+  // createRenderPass(true);
+  // createShaders();
+  // createDefaultPipeline();
 }
 
 void Renderer::destroy() {
-  destroyDefaultPipeline();
-  destroyShaders();
-  destroyRenderPass();
+  // destroyDefaultPipeline();
+  // destroyShaders();
+  // destroyRenderPass();
   m_swapchainObj->destroy();
   destroyDepthImages();
 }

@@ -6,17 +6,18 @@
 namespace myvk_bs {
 class Swapchain {
 public:
-  vkb::Swapchain m_swapchain;
+  vkb::Swapchain           m_swapchain;
+  vkb::Device*             m_device;
 
   std::vector<VkImage>     m_images;
   std::vector<VkImageView> m_imageViews;
-
-  vkb::Device *m_device;
-
-  Swapchain(vkb::Device *device) : m_device(device) {}
+  
+  Swapchain(vkb::Device* device) : m_device(device) {}
   ~Swapchain();
 
   void create(u32 width, u32 height);
   void destroy();
+
+
 };
 } // namespace myvk_bs
