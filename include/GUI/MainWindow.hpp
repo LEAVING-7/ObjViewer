@@ -8,19 +8,32 @@ public:
   GLFWwindow* m_window;
   u32         m_width, m_height;
 
+  bool m_framebufferResized{false};
+
   void create(int width, int height, ccstr title, GLFWmonitor* monitor);
   void destroy();
+  void updateExtent();
 
   VkSurfaceKHR createSurface(VkInstance instance);
-  bool shouldClose();
+  bool         shouldClose();
+  bool         isFramebufferResized();
 
+  std::pair<int, int> getWindowSize();
+  std::pair<int, int> getFrameBufferSize();
 
-  void setErrorCallback(GLFWerrorfun callback = [](int         error_code,
-                                                   const char* description) {
-    LOG_INFO("[glfw error: {}]: {}", error_code, description);
-  });
-  void setKeyCallback(GLFWkeyfun callback);
-  void setWindowSizeCallback(GLFWwindowsizefun callback);
-  void setCursorPosCallback(GLFWcursorposfun callback);
+  static void  waitEvents();
+  static void  setUserPointer(GLFWwindow* m_window, void* pointer);
+  static void* getUserPointer(GLFWwindow* m_window);
+
+  MainWindow& setErrorCallback(GLFWerrorfun callback =
+                                   [](int error_code, const char* description) {
+                                     LOG_INFO("[glfw error: {}]: {}",
+                                              error_code, description);
+                                   });
+
+  MainWindow& setKeyCallback(GLFWkeyfun callback);
+  MainWindow& setWindowSizeCallback(GLFWwindowsizefun callback);
+  MainWindow& setCursorPosCallback(GLFWcursorposfun callback);
+  MainWindow& setFramebufferSizeCallback(GLFWframebuffersizefun callback);
 };
 } // namespace myvk::gui

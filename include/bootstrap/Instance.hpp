@@ -8,6 +8,7 @@ public:
   vkb::Instance m_instance;
 
 private:
+  VkDebugUtilsMessengerEXT             m_messenger;
   PFN_vkDebugUtilsMessengerCallbackEXT m_fpDebugMessenger{nullptr};
   bool                                 m_enableValidationLayer;
 
@@ -19,5 +20,7 @@ public:
   void create(std::vector<ccstr>& layers, std::vector<ccstr>& extensions,
               ccstr appName, bool enableValidationLayer = true);
   void destroy();
+
+  MYVK_CONVERT_OP(Instance, m_instance);
 };
-} // namespace myvk_bs
+} // namespace myvk::bs

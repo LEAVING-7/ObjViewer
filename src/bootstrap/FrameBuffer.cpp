@@ -2,7 +2,6 @@
 #include "bootstrap/Swapchain.hpp"
 
 namespace myvk::bs {
-
 void Framebuffer::FrameData::create(VkDevice device, u32 graphicIndex) {
   create1(device, presentSemaphore, renderSemaphore);
   // create signaled fence
@@ -56,14 +55,13 @@ void Framebuffer::destroy(VkDevice device) {
   }
 }
 
-u32 Framebuffer::acquireNextImage(VkDevice device, VkSwapchainKHR swapchain,
-                                  u64 timeout) {
-  u32  imageIdx;
+VkResult Framebuffer::acquireNextImage(VkDevice       device,
+                                       VkSwapchainKHR swapchain, u64 timeout,
+                                       u32* index) {
   auto result = vkAcquireNextImageKHR(device, swapchain, 100000000,
                                       currentFrameData().presentSemaphore,
-                                      nullptr, &imageIdx);
-  assert(result == VK_SUCCESS);
-  return imageIdx;
+                                      nullptr, index);
+  return result;
 }
 
 void Framebuffer::freeCmdBuffer(VkDevice device) {
@@ -71,4 +69,4 @@ void Framebuffer::freeCmdBuffer(VkDevice device) {
     frame.cmdBuffer.free(device, frameData->cmdPool);
   }
 }
-} // namespace myvk_bs
+} // namespace myvk::bs

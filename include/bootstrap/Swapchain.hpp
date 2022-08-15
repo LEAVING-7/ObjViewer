@@ -11,9 +11,9 @@ public:
   std::vector<VkImage>     m_images;
   std::vector<VkImageView> m_imageViews;
 
-  void create(Device* device, u32 width, u32 height);
+  void create(vkb::Device* device, VkSurfaceKHR surface ,u32 width, u32 height);
   void destroy();
 
   MYVK_CONVERT_OP(SwapchainKHR, m_swapchain);
 };
-} // namespace myvk_bs
+} // namespace myvk::bs

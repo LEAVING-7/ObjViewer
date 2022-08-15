@@ -51,29 +51,29 @@ void Application::initialize() {
 
   m_instanceObj.create(g_layerNames, g_instanceExtensionNames, title);
 
-  m_rendererObj = std::make_unique<Renderer>(this);
-  m_rendererObj->createWindow();
+  m_rendererObj = std::make_unique<Renderer>();
+  m_rendererObj->createWindow(m_instanceObj);
 
-  vkb::PhysicalDeviceSelector selector{m_instanceObj.m_instance};
-  auto selection = selector.set_surface(m_rendererObj->m_surface)
-                       .set_minimum_version(1, 1)
+  vkb::PhysicalDeviceSelector selector{m_instanceObj.m_instance,
+                                       m_rendererObj->m_surface};
+
+  auto selection = selector.set_minimum_version(1, 1)
                        .add_desired_extensions(g_deviceExtensionNames)
                        .select();
 
   assert(selection.has_value());
   vkb::PhysicalDevice physicalDevice = selection.value();
 
-  m_deviceObj = std::make_unique<Device>(physicalDevice);
-  m_deviceObj->create(g_layerNames, g_deviceExtensionNames);
+  m_deviceObj = std::make_unique<Device>();
+  m_deviceObj->create(physicalDevice, g_layerNames, g_deviceExtensionNames);
 
   m_allocator.create(getVkPhysicalDevice(), getVkDevice(), getVkInstance());
-
-  m_rendererObj->create();
+  m_rendererObj->create(this);
 }
 
 void Application::deInitialize() {
   m_rendererObj->destroy();
-  m_rendererObj->destroyWindow();
+  m_rendererObj->destroyWindow(m_instanceObj);
   m_allocator.destroy();
   m_deviceObj->destroy();
   m_instanceObj.destroy();
@@ -91,4 +91,4 @@ bool Application::render() {
   return m_rendererObj->windowShouldClose();
 }
 
-} // namespace myvk_bs
+} // namespace myvk::bs

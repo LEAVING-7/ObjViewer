@@ -1,7 +1,6 @@
 #include "bootstrap/Renderer.hpp"
 
 #include "bootstrap/Application.hpp"
-#include "bootstrap/GraphicPipelineBuilder.hpp"
 
 namespace myvk::bs {
 void windowKeyCallback(GLFWwindow* window, int key, int scancode, int action,
@@ -12,15 +11,17 @@ void windowKeyCallback(GLFWwindow* window, int key, int scancode, int action,
 }
 
 void windowCursorPosCallback(GLFWwindow* window, double xpos, double ypos) {}
-void windowSizeCallback(GLFWwindow* window, int width, int height) {
-  
+
+void windowFramebufferResizeCallback(GLFWwindow* window, int width,
+                                     int height) {
+  Renderer* renderer =
+      reinterpret_cast<Renderer*>(gui::MainWindow::getUserPointer(window));
+
+  renderer->m_window.m_framebufferResized = true;
 }
 
-
-Renderer::Renderer(Application* app) : m_application(app) {}
-Renderer::~Renderer() {}
-
-void Renderer::create() {
+void Renderer::create(Application* app) {
+  m_application = app;
   getGraphicQueueAndQueueIndex();
   createDepthImages();
   createSwapchain();
@@ -41,22 +42,60 @@ void Renderer::destroy() {
   destroyDepthImages();
 }
 
+void Renderer::recreateSwapchain() {
+  vkDeviceWaitIdle(*m_application);
+  auto [width, height] = m_window.getFrameBufferSize();
+  while (width == 0 || height == 0) {
+    glfwGetFramebufferSize(m_window.m_window, &width, &height);
+    gui::MainWindow::waitEvents();
+  }
+
+  destroyFrameBuffer();
+  destroyDefaultPipeline();
+  destroyShaders();
+  destroyRenderPass();
+  destroySwapchain();
+  destroyDepthImages();
+
+  m_window.updateExtent();
+
+  createDepthImages();
+  createSwapchain();
+  createRenderPass(true);
+  createShaders();
+  createDefaultPipeline();
+  createFrameBuffer(true);
+}
+
 void Renderer::prepare() {}
 
 void Renderer::render() {
   glfwPollEvents();
+  VkResult result;
 
   m_frameBuffer.updateFrameCount();
   auto& currentData = m_frameBuffer.currentFrameData();
 
   vkWaitForFences(*m_application, 1, &currentData.renderFence, true, 1'000'000);
+
+  u32 swapchainImgIdx;
+
+  result = m_frameBuffer.acquireNextImage(*m_application, *m_swapchainObj,
+                                          1'000'000, &swapchainImgIdx);
+
+  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
+      m_window.isFramebufferResized()) {
+    recreateSwapchain();
+    m_window.m_framebufferResized = false;
+    return;
+  } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+    LOG_ERR("failed to acquire next image");
+    return;
+  }
+
   currentData.renderFence.reset(*m_application);
 
-  u32 swapchainImgIdx = m_frameBuffer.acquireNextImage(
-      *m_application, *m_swapchainObj, 1'000'000);
-
   currentData.cmdBuffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
   VkClearValue colorClear{
       .color = {{0.f, 0.f, (float(sin(m_frameBuffer.frameCount)) + 1.f) / 2.f,
                  1.f}},
@@ -121,19 +160,20 @@ bool Renderer::windowShouldClose() {
   return m_window.shouldClose();
 }
 
-void Renderer::createWindow(u32 width, u32 height) {
-
+void Renderer::createWindow(VkInstance instance, u32 width, u32 height) {
   m_window.create(width, height, "This is a title", nullptr);
-  m_surface = m_window.createSurface(*m_application);
-  m_window.setErrorCallback();
-  m_window.setWindowSizeCallback([](GLFWwindow* window, int width, int height) {
-    auto* renderer = Application::GetInstance()->m_rendererObj.get();
-  });
-  m_window.setCursorPosCallback(windowCursorPosCallback);
-  m_window.setKeyCallback(windowKeyCallback);
+  m_surface = m_window.createSurface(instance);
+  LOG_INFO("create surface: {}", (void*)m_surface);
+
+  m_window.setUserPointer(m_window.m_window, this);
+
+  m_window.setErrorCallback()
+      .setCursorPosCallback(windowCursorPosCallback)
+      .setKeyCallback(windowKeyCallback)
+      .setFramebufferSizeCallback(windowFramebufferResizeCallback);
 }
-void Renderer::destroyWindow() {
-  vkDestroySurfaceKHR(m_application->getVkInstance(), m_surface, nullptr);
+void Renderer::destroyWindow(VkInstance instance) {
+  vkDestroySurfaceKHR(instance, m_surface, nullptr);
   m_window.destroy();
 }
 
@@ -287,8 +327,8 @@ void Renderer::createSwapchain() {
                             .get_queue_index(vkb::QueueType::graphics)
                             .value();
   m_swapchainObj = std::make_unique<Swapchain>();
-  m_swapchainObj->create(m_application->m_deviceObj.get(), m_window.m_width,
-                         m_window.m_height);
+  m_swapchainObj->create(&m_application->m_deviceObj.get()->m_device, m_surface,
+                         m_window.m_width, m_window.m_height);
 }
 
 void Renderer::destroySwapchain() {
@@ -374,12 +414,12 @@ void Renderer::destroyDefaultPipeline() {
 }
 
 void Renderer::getGraphicQueueAndQueueIndex() {
-  m_graphicQueue =
-      m_application->m_deviceObj->m_device.get_queue(vkb::QueueType::graphics)
-          .value();
   m_graphicQueueIndex = m_application->m_deviceObj->m_device
                             .get_queue_index(vkb::QueueType::graphics)
                             .value();
+  m_graphicQueue =
+      m_application->m_deviceObj->m_device.get_queue(vkb::QueueType::graphics)
+          .value();
 }
 
 } // namespace myvk::bs

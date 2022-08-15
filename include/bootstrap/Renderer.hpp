@@ -4,17 +4,17 @@
 
 #include <unordered_map>
 
+#include "GUI/MainWindow.hpp"
 #include "bootstrap/BufferAllocator.hpp"
 #include "bootstrap/FrameBuffer.hpp"
 #include "bootstrap/Shader.hpp"
 #include "bootstrap/Swapchain.hpp"
 #include "bootstrap/SyncStructures.hpp"
-#include "GUI/MainWindow.hpp"
+#include "bootstrap/GraphicPipelineBuilder.hpp"
 
 namespace myvk::bs {
 class Application;
 class Device;
-struct GraphicPipelineBuilder;
 
 struct GPUPushConstant {
   glm::vec4 color;
@@ -22,19 +22,15 @@ struct GPUPushConstant {
 
 class Renderer {
 public:
-  Renderer(Application* app);
-  ~Renderer();
-
-public:
-  void create();
+  void create(Application* app);
   void destroy();
 
   void initialize();
   void prepare();
   void render();
 
-  void createWindow(u32 width = 800, u32 height = 600);
-  void destroyWindow();
+  void createWindow(VkInstance instance, u32 width = 800, u32 height = 600);
+  void destroyWindow(VkInstance instance);
   bool windowShouldClose();
 
   void createSwapchain();
@@ -57,6 +53,8 @@ public:
 
   void getGraphicQueueAndQueueIndex();
 
+  void recreateSwapchain();
+
 public:
   gui::MainWindow m_window;
 
@@ -77,7 +75,7 @@ public:
   VkQueue m_graphicQueue;
   u32     m_graphicQueueIndex;
 
-private:
+// private:
   Application*               m_application;
   std::unique_ptr<Swapchain> m_swapchainObj;
 

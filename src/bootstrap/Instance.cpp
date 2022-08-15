@@ -31,4 +31,4 @@ void Instance::create(std::vector<ccstr>& layers,
 void Instance::destroy() {
   vkb::destroy_instance(m_instance);
 }
-} // namespace myvk_bs
+} // namespace myvk::bs

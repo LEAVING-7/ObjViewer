@@ -2,15 +2,16 @@
 #include "bootstrap/Application.hpp"
 
 namespace myvk::bs {
-void Device::create(std::vector<ccstr>& layers,
+void Device::create(vkb::PhysicalDevice& gpu, std::vector<ccstr>& layers,
                     std::vector<ccstr>& extensions) {
-  vkb::DeviceBuilder builder{m_gpu};
+  vkb::DeviceBuilder builder{gpu};
 
   auto result = builder.build();
   assert(result.has_value());
-  m_device = result.value();
+  m_device = std::move(result.value());
+  m_gpu    = std::move(gpu);
 }
 void Device::destroy() {
   vkb::destroy_device(m_device);
 }
-} // namespace myvk_bs
+} // namespace myvk::bs

@@ -32,7 +32,7 @@ public:
   void destroy(VkDevice device);
 
   // using present semaphore
-  u32 acquireNextImage(VkDevice device, VkSwapchainKHR swapchain, u64 timeout);
+  VkResult acquireNextImage(VkDevice device, VkSwapchainKHR swapchain, u64 timeout, u32 *index);
   void freeCmdBuffer(VkDevice device);
 
   void updateFrameCount() {

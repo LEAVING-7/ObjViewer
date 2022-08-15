@@ -8,12 +8,11 @@ public:
   vkb::Device         m_device;
   vkb::PhysicalDevice m_gpu;
 
-  Device(vkb::PhysicalDevice gpu) : m_gpu(std::move(gpu)) {}
-  ~Device() = default;
-  void create(std::vector<ccstr>& layers, std::vector<ccstr>& extensions);
+  void create(vkb::PhysicalDevice& gpu, std::vector<ccstr>& layers,
+              std::vector<ccstr>& extensions);
   void destroy();
 
   MYVK_CONVERT_OP(Device, m_device);
 };
 
-} // namespace myvk_bs
+} // namespace myvk::bs
