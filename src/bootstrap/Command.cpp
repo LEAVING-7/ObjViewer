@@ -1,6 +1,6 @@
-#include "myvk-bootstrap/Command.hpp"
+#include "bootstrap/Command.hpp"
 
-namespace myvk_bs {
+namespace myvk::bs {
 void CommandPool::create(VkDevice device, VkCommandPoolCreateFlags flag,
                          u32 queueIndex) {
   VkCommandPoolCreateInfo CI{
@@ -59,4 +59,8 @@ void CommandBuffer::beginRenderPass(VkRenderPassBeginInfo* pRenderPassBI,
 void CommandBuffer::endRenderPass() {
   vkCmdEndRenderPass(cmdBuffer);
 }
+void CommandBuffer::free(VkDevice device, VkCommandPool cmdPool) {
+  vkFreeCommandBuffers(device, cmdPool, 1, &cmdBuffer);
+}
+
 } // namespace myvk_bs

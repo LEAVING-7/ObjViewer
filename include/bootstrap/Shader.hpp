@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace myvk_bs {
+namespace myvk::bs {
 class Shader {
 public:
   VkPipelineShaderStageCreateInfo m_shaderInfo;

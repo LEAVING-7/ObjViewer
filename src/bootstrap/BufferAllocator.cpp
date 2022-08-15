@@ -1,6 +1,6 @@
-#include "myvk-bootstrap/BufferAllocator.hpp"
+#include "bootstrap/BufferAllocator.hpp"
 
-namespace myvk_bs {
+namespace myvk::bs {
 void BufferAllocator::create(VkPhysicalDevice gpu, VkDevice device,
                              VkInstance instance) {
   VmaAllocatorCreateInfo allocatorCI{

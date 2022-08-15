@@ -1,4 +1,4 @@
-#include "myvk-bootstrap/Application.hpp"
+#include "bootstrap/Application.hpp"
 #include "pch.hpp"
 
 #include <memory>
@@ -28,7 +28,7 @@ std::vector g_deviceExtensionNames{
 
 int main() {
   {
-    myvk_bs::Application* appObj = myvk_bs::Application::GetInstance();
+    myvk::bs::Application* appObj = myvk::bs::Application::GetInstance();
     appObj->initialize();
     LOG_INFO("initialize successfully");
 

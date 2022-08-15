@@ -2,7 +2,7 @@
 #include "common.hpp"
 #include "pch.hpp"
 
-namespace myvk_bs {
+namespace myvk::bs {
 class Device {
 public:
   vkb::Device         m_device;

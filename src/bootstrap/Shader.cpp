@@ -1,6 +1,6 @@
-#include "myvk-bootstrap/Shader.hpp"
-#include "myvk-bootstrap/Application.hpp"
-namespace myvk_bs {
+#include "bootstrap/Shader.hpp"
+#include "bootstrap/Application.hpp"
+namespace myvk::bs {
 
 void Shader::create(u32* code, size_t size, ccstr entryName) {
   assert(size % 4 == 0);

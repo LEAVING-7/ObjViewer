@@ -4,16 +4,21 @@
 
 #include <unordered_map>
 
-#include "myvk-bootstrap/BufferAllocator.hpp"
-#include "myvk-bootstrap/FrameBuffer.hpp"
-#include "myvk-bootstrap/Shader.hpp"
-#include "myvk-bootstrap/Swapchain.hpp"
-#include "myvk-bootstrap/SyncStructures.hpp"
+#include "bootstrap/BufferAllocator.hpp"
+#include "bootstrap/FrameBuffer.hpp"
+#include "bootstrap/Shader.hpp"
+#include "bootstrap/Swapchain.hpp"
+#include "bootstrap/SyncStructures.hpp"
+#include "GUI/MainWindow.hpp"
 
-namespace myvk_bs {
+namespace myvk::bs {
 class Application;
 class Device;
 struct GraphicPipelineBuilder;
+
+struct GPUPushConstant {
+  glm::vec4 color;
+};
 
 class Renderer {
 public:
@@ -35,7 +40,6 @@ public:
   void createSwapchain();
   void destroySwapchain();
 
-private:
   void createDepthImages();
   void destroyDepthImages();
 
@@ -51,9 +55,11 @@ private:
   void createDefaultPipeline();
   void destroyDefaultPipeline();
 
+  void getGraphicQueueAndQueueIndex();
+
 public:
-  VkExtent2D   m_windowExtent;
-  GLFWwindow*  m_window;
+  gui::MainWindow m_window;
+
   VkSurfaceKHR m_surface;
 
   VkFormat       m_depthImageFormat;
@@ -77,4 +83,4 @@ private:
 
   std::unordered_map<std::string, Shader> m_shaders;
 };
-} // namespace myvk_bs
+} // namespace myvk::bs

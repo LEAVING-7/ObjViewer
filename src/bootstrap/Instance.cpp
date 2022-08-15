@@ -1,6 +1,6 @@
-#include "myvk-bootstrap/Instance.hpp"
+#include "bootstrap/Instance.hpp"
 
-namespace myvk_bs {
+namespace myvk::bs {
 void Instance::create(std::vector<ccstr>& layers,
                       std::vector<ccstr>& extensions, ccstr appName,
                       bool enableValidationLayer) {

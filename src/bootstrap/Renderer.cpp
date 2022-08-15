@@ -1,9 +1,9 @@
-#include "myvk-bootstrap/Renderer.hpp"
+#include "bootstrap/Renderer.hpp"
 
-#include "myvk-bootstrap/Application.hpp"
-#include "myvk-bootstrap/GraphicPipelineBuilder.hpp"
+#include "bootstrap/Application.hpp"
+#include "bootstrap/GraphicPipelineBuilder.hpp"
 
-namespace myvk_bs {
+namespace myvk::bs {
 void windowKeyCallback(GLFWwindow* window, int key, int scancode, int action,
                        int mods) {
   if (key == GLFW_KEY_ESCAPE) {
@@ -12,11 +12,16 @@ void windowKeyCallback(GLFWwindow* window, int key, int scancode, int action,
 }
 
 void windowCursorPosCallback(GLFWwindow* window, double xpos, double ypos) {}
+void windowSizeCallback(GLFWwindow* window, int width, int height) {
+  
+}
+
 
 Renderer::Renderer(Application* app) : m_application(app) {}
 Renderer::~Renderer() {}
 
 void Renderer::create() {
+  getGraphicQueueAndQueueIndex();
   createDepthImages();
   createSwapchain();
   createRenderPass(true);
@@ -40,6 +45,7 @@ void Renderer::prepare() {}
 
 void Renderer::render() {
   glfwPollEvents();
+
   m_frameBuffer.updateFrameCount();
   auto& currentData = m_frameBuffer.currentFrameData();
 
@@ -52,7 +58,8 @@ void Renderer::render() {
   currentData.cmdBuffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
   VkClearValue colorClear{
-      .color = {{0.f, 0.f, 0.3f, 1.f}},
+      .color = {{0.f, 0.f, (float(sin(m_frameBuffer.frameCount)) + 1.f) / 2.f,
+                 1.f}},
   };
 
   VkClearValue depthClear{
@@ -68,7 +75,7 @@ void Renderer::render() {
       .renderArea =
           {
               .offset = {0, 0},
-              .extent = m_windowExtent,
+              .extent = {m_window.m_width, m_window.m_height},
           },
       .clearValueCount = 2,
       .pClearValues    = clearValue,
@@ -111,30 +118,29 @@ void Renderer::render() {
 }
 
 bool Renderer::windowShouldClose() {
-  return glfwWindowShouldClose(m_window);
+  return m_window.shouldClose();
 }
 
 void Renderer::createWindow(u32 width, u32 height) {
-  m_windowExtent = {width, height};
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  glfwSetErrorCallback([](int error_code, const char* description) {
-    LOG_ERR("[glfw] [Error code: {}]: {}", error_code, description);
+
+  m_window.create(width, height, "This is a title", nullptr);
+  m_surface = m_window.createSurface(*m_application);
+  m_window.setErrorCallback();
+  m_window.setWindowSizeCallback([](GLFWwindow* window, int width, int height) {
+    auto* renderer = Application::GetInstance()->m_rendererObj.get();
   });
-  m_window = glfwCreateWindow(width, height, "Vulkan Title", nullptr, nullptr);
-  glfwCreateWindowSurface(m_application->getVkInstance(), m_window, nullptr,
-                          &m_surface);
-  glfwSetKeyCallback(m_window, windowKeyCallback);
-  glfwSetCursorPosCallback(m_window, windowCursorPosCallback);
+  m_window.setCursorPosCallback(windowCursorPosCallback);
+  m_window.setKeyCallback(windowKeyCallback);
 }
 void Renderer::destroyWindow() {
   vkDestroySurfaceKHR(m_application->getVkInstance(), m_surface, nullptr);
-  glfwDestroyWindow(m_window);
+  m_window.destroy();
 }
 
 void Renderer::createDepthImages() {
   VkExtent3D imageExtent{
-      .width  = m_windowExtent.width,
-      .height = m_windowExtent.height,
+      .width  = m_window.m_width,
+      .height = m_window.m_height,
       .depth  = 1,
   };
 
@@ -266,9 +272,10 @@ void Renderer::destroyRenderPass() {
 }
 
 void Renderer::createFrameBuffer(bool includeDepth) {
-  m_frameBuffer.create(
-      *m_application, m_swapchainObj->m_swapchain, m_renderPass, m_windowExtent,
-      m_swapchainObj->m_imageViews, m_depthImageView, m_graphicQueueIndex);
+  m_frameBuffer.create(*m_application, m_swapchainObj->m_swapchain,
+                       m_renderPass, {m_window.m_width, m_window.m_height},
+                       m_swapchainObj->m_imageViews, m_depthImageView,
+                       m_graphicQueueIndex);
 }
 
 void Renderer::destroyFrameBuffer() {
@@ -280,8 +287,8 @@ void Renderer::createSwapchain() {
                             .get_queue_index(vkb::QueueType::graphics)
                             .value();
   m_swapchainObj = std::make_unique<Swapchain>();
-  m_swapchainObj->create(m_application->m_deviceObj.get(), m_windowExtent.width,
-                         m_windowExtent.height);
+  m_swapchainObj->create(m_application->m_deviceObj.get(), m_window.m_width,
+                         m_window.m_height);
 }
 
 void Renderer::destroySwapchain() {
@@ -318,7 +325,9 @@ void Renderer::createDefaultPipeline() {
       .flags                  = 0,
       .setLayoutCount         = 0,
       .pushConstantRangeCount = 0,
+      .pPushConstantRanges    = nullptr,
   };
+
   vkCreatePipelineLayout(m_application->getVkDevice(), &defaultPipelineLayoutCI,
                          nullptr, &m_defaultPipelineLayout);
 
@@ -337,18 +346,19 @@ void Renderer::createDefaultPipeline() {
           .setDynamic(u32(std::size(dynamicState)), dynamicState)
           .noColorBlend(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                         VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT)
-          .setViewPortAndScissor({{
-                                     .x        = 0.f,
-                                     .y        = 0.f,
-                                     .width    = (float)m_windowExtent.width,
-                                     .height   = (float)m_windowExtent.height,
-                                     .minDepth = 0.f,
-                                     .maxDepth = 1.f,
-                                 }},
-                                 {{
-                                     .offset{0, 0},
-                                     .extent = m_windowExtent,
-                                 }})
+          .setViewPortAndScissor(
+              {{
+                  .x        = 0.f,
+                  .y        = 0.f,
+                  .width    = (float)m_window.m_width,
+                  .height   = (float)m_window.m_height,
+                  .minDepth = 0.f,
+                  .maxDepth = 1.f,
+              }},
+              {{
+                  .offset{0, 0},
+                  .extent = {m_window.m_width, m_window.m_height},
+              }})
           .setDeepNoStencil(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL, VK_FALSE,
                             0, 1)
           .setMultisample(VK_SAMPLE_COUNT_1_BIT, VK_FALSE, 1.f, nullptr,
@@ -363,4 +373,13 @@ void Renderer::destroyDefaultPipeline() {
   vkDestroyPipeline(m_application->getVkDevice(), m_defaultPipeline, nullptr);
 }
 
-} // namespace myvk_bs
+void Renderer::getGraphicQueueAndQueueIndex() {
+  m_graphicQueue =
+      m_application->m_deviceObj->m_device.get_queue(vkb::QueueType::graphics)
+          .value();
+  m_graphicQueueIndex = m_application->m_deviceObj->m_device
+                            .get_queue_index(vkb::QueueType::graphics)
+                            .value();
+}
+
+} // namespace myvk::bs

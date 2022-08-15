@@ -1,7 +1,7 @@
-#include "myvk-bootstrap/Device.hpp"
-#include "myvk-bootstrap/Application.hpp"
+#include "bootstrap/Device.hpp"
+#include "bootstrap/Application.hpp"
 
-namespace myvk_bs {
+namespace myvk::bs {
 void Device::create(std::vector<ccstr>& layers,
                     std::vector<ccstr>& extensions) {
   vkb::DeviceBuilder builder{m_gpu};

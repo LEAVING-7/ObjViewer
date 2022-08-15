@@ -11,6 +11,8 @@
 #include <spdlog/spdlog.h>
 #include <vk_mem_alloc.h>
 #include <glm/glm.hpp>
+#include <glm/common.hpp>
+#include <glm/ext.hpp>
 
 #include <memory>
 #include <vector>

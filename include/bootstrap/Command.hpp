@@ -2,7 +2,7 @@
 #include "common.hpp"
 #include "pch.hpp"
 
-namespace myvk_bs {
+namespace myvk::bs {
 struct CommandPool {
   VkCommandPool cmdPool;
 
@@ -26,6 +26,8 @@ struct CommandBuffer {
   void beginRenderPass(VkRenderPassBeginInfo* pRenderPassBI,
                        VkSubpassContents      contents);
   void endRenderPass();
+
+  void free(VkDevice device, VkCommandPool cmdPool);
 
   MYVK_CONVERT_OP(CommandBuffer, cmdBuffer);
   MYVK_ADDRESS_OP(CommandBuffer, cmdBuffer);

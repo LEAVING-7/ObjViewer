@@ -1,7 +1,7 @@
-#include "myvk-bootstrap/FrameBuffer.hpp"
-#include "myvk-bootstrap/Swapchain.hpp"
+#include "bootstrap/FrameBuffer.hpp"
+#include "bootstrap/Swapchain.hpp"
 
-namespace myvk_bs {
+namespace myvk::bs {
 
 void Framebuffer::FrameData::create(VkDevice device, u32 graphicIndex) {
   create1(device, presentSemaphore, renderSemaphore);
@@ -58,10 +58,17 @@ void Framebuffer::destroy(VkDevice device) {
 
 u32 Framebuffer::acquireNextImage(VkDevice device, VkSwapchainKHR swapchain,
                                   u64 timeout) {
-  u32 imageIdx;
-  vkAcquireNextImageKHR(device, swapchain, 100000000,
-                        currentFrameData().presentSemaphore, nullptr,
-                        &imageIdx);
+  u32  imageIdx;
+  auto result = vkAcquireNextImageKHR(device, swapchain, 100000000,
+                                      currentFrameData().presentSemaphore,
+                                      nullptr, &imageIdx);
+  assert(result == VK_SUCCESS);
   return imageIdx;
+}
+
+void Framebuffer::freeCmdBuffer(VkDevice device) {
+  for (FrameData& frame : frameData) {
+    frame.cmdBuffer.free(device, frameData->cmdPool);
+  }
 }
 } // namespace myvk_bs

@@ -2,7 +2,7 @@
 #include "common.hpp"
 #include "pch.hpp"
 
-namespace myvk_bs {
+namespace myvk::bs {
 struct GraphicPipelineBuilder {
 
   template <typename T> struct Init {

@@ -1,9 +1,9 @@
-#include "myvk-bootstrap/Application.hpp"
+#include "bootstrap/Application.hpp"
 
 extern std::vector<ccstr> g_instanceExtensionNames;
 extern std::vector<ccstr> g_layerNames;
 extern std::vector<ccstr> g_deviceExtensionNames;
-namespace myvk_bs {
+namespace myvk::bs {
 
 Application::Application() {}
 

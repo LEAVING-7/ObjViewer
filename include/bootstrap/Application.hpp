@@ -1,11 +1,11 @@
 #pragma once
 
-#include "myvk-bootstrap/BufferAllocator.hpp"
-#include "myvk-bootstrap/Device.hpp"
-#include "myvk-bootstrap/Instance.hpp"
-#include "myvk-bootstrap/Renderer.hpp"
+#include "bootstrap/BufferAllocator.hpp"
+#include "bootstrap/Device.hpp"
+#include "bootstrap/Instance.hpp"
+#include "bootstrap/Renderer.hpp"
 
-namespace myvk_bs {
+namespace myvk::bs {
 
 class Application {
 private:

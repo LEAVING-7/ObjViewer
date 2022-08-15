@@ -1,7 +1,7 @@
-#include "myvk-bootstrap/Swapchain.hpp"
+#include "bootstrap/Swapchain.hpp"
 
-#include "myvk-bootstrap/Device.hpp"
-namespace myvk_bs {
+#include "bootstrap/Device.hpp"
+namespace myvk::bs {
 
 void Swapchain::create(Device* device, u32 width, u32 height) {
   vkb::SwapchainBuilder builder{device->m_gpu, device->m_device,

@@ -1,6 +1,6 @@
-#include "myvk-bootstrap/GraphicPipelineBuilder.hpp"
+#include "bootstrap/GraphicPipelineBuilder.hpp"
 
-namespace myvk_bs {
+namespace myvk::bs {
 GraphicPipelineBuilder& GraphicPipelineBuilder::setShader(
     std::vector<VkPipelineShaderStageCreateInfo>&& shaders) {
   this->shaders = std::forward<decltype(shaders)>(shaders);

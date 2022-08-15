@@ -2,11 +2,11 @@
 #include "common.hpp"
 #include "pch.hpp"
 
-#include "myvk-bootstrap/Command.hpp"
-#include "myvk-bootstrap/SyncStructures.hpp"
+#include "bootstrap/Command.hpp"
+#include "bootstrap/SyncStructures.hpp"
 
 // TODO : FrameBuffer
-namespace myvk_bs {
+namespace myvk::bs {
 class Framebuffer {
 public:
   struct FrameData {
@@ -33,6 +33,7 @@ public:
 
   // using present semaphore
   u32 acquireNextImage(VkDevice device, VkSwapchainKHR swapchain, u64 timeout);
+  void freeCmdBuffer(VkDevice device);
 
   void updateFrameCount() {
     ++frameCount;

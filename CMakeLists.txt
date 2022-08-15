@@ -12,7 +12,7 @@ compile_shaders()
 add_executable(ObjViewer)
 
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src TARGET_SRC)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/myvk-bootstrap MYVK_SRC)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/bootstrap MYVK_SRC)
 
 
 target_sources(ObjViewer PUBLIC ${MYVK_SRC} ${TARGET_SRC} )
