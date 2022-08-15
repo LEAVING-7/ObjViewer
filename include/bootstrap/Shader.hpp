@@ -16,16 +16,14 @@ public:
       : m_stage(stage), m_name(name){};
   ~Shader() = default;
 
-  void create(u32* code, size_t size, ccstr entryName = "main");
+  void create(VkDevice device, u32* code, size_t size,
+              ccstr entryName = "main");
 
   template <typename T, typename = std::void_t<std::is_arithmetic<T>>>
-  void create(std::vector<T>& vec, ccstr entryName = "main") {
-    this->create(reinterpret_cast<u32*>(vec.data()), vec.size());
+  void create(VkDevice device, std::vector<T>& vec, ccstr entryName = "main") {
+    this->create(device, reinterpret_cast<u32*>(vec.data()), vec.size());
   }
 
-  void destroy();
-
-private:
-  VkDevice m_device;
+  void destroy(VkDevice device);
 };
-} // namespace myvk_bs
+} // namespace myvk::bs

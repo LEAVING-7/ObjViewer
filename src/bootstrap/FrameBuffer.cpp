@@ -13,14 +13,15 @@ void Framebuffer::FrameData::create(VkDevice device, u32 graphicIndex) {
 
 void Framebuffer::FrameData::destroy(VkDevice device) {
   cmdBuffer.destroy(device, cmdPool);
-  destroy1(device, presentSemaphore, renderSemaphore, renderFence);
   cmdPool.destroy(device);
+  destroy1(device, presentSemaphore, renderSemaphore, renderFence);
 }
 
 void Framebuffer::create(VkDevice device, vkb::Swapchain& swapchain,
                          VkRenderPass renderPass, VkExtent2D windowExtent,
-                         std::vector<VkImageView>& imageViews,
-                         VkImageView depthImage, u32 graphicIndex) {
+                         std::vector<VkImageView>&  imageViews,
+                         std::optional<VkImageView> depthImageView,
+                         u32                        graphicIndex) {
   for (auto& frame : frameData) {
     frame.create(device, graphicIndex);
   }
@@ -38,9 +39,14 @@ void Framebuffer::create(VkDevice device, vkb::Swapchain& swapchain,
   u32 swapchainSize = u32(swapchain.image_count);
   framebuffers.resize(swapchainSize);
   for (u32 i = 0; i < swapchainSize; ++i) {
-    VkImageView attachments[2]{imageViews[i], depthImage};
-    CI.attachmentCount = 2;
-    CI.pAttachments    = attachments;
+    if (!depthImageView.has_value()) {
+      CI.attachmentCount = 1;
+      CI.pAttachments    = &imageViews[i];
+    } else {
+      VkImageView attachments[]{imageViews[i], depthImageView.value()};
+      CI.attachmentCount = 2;
+      CI.pAttachments    = attachments;
+    }
     auto result = vkCreateFramebuffer(device, &CI, nullptr, &framebuffers[i]);
     assert(result == VK_SUCCESS);
   }

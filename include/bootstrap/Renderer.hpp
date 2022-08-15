@@ -7,10 +7,10 @@
 #include "GUI/MainWindow.hpp"
 #include "bootstrap/BufferAllocator.hpp"
 #include "bootstrap/FrameBuffer.hpp"
+#include "bootstrap/GraphicPipelineBuilder.hpp"
 #include "bootstrap/Shader.hpp"
 #include "bootstrap/Swapchain.hpp"
 #include "bootstrap/SyncStructures.hpp"
-#include "bootstrap/GraphicPipelineBuilder.hpp"
 
 namespace myvk::bs {
 class Application;
@@ -54,6 +54,9 @@ public:
   void getGraphicQueueAndQueueIndex();
 
   void recreateSwapchain();
+  // TODO: remove this later
+  void createMesh();
+  void destroyMesh();
 
 public:
   gui::MainWindow m_window;
@@ -75,7 +78,9 @@ public:
   VkQueue m_graphicQueue;
   u32     m_graphicQueueIndex;
 
-// private:
+  AllocatedBuffer m_testMesh;
+
+  // private:
   Application*               m_application;
   std::unique_ptr<Swapchain> m_swapchainObj;
 

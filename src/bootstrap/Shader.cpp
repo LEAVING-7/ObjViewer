@@ -2,10 +2,8 @@
 #include "bootstrap/Application.hpp"
 namespace myvk::bs {
 
-void Shader::create(u32* code, size_t size, ccstr entryName) {
+void Shader::create(VkDevice device, u32* code, size_t size, ccstr entryName) {
   assert(size % 4 == 0);
-
-  auto*    app = Application::GetInstance();
   VkResult result;
 
   m_shaderInfo = {
@@ -16,6 +14,7 @@ void Shader::create(u32* code, size_t size, ccstr entryName) {
       .pName = entryName,
       .pSpecializationInfo = nullptr,
   };
+
   VkShaderModuleCreateInfo moduleCreateInfo{
       .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       .pNext    = nullptr,
@@ -24,13 +23,12 @@ void Shader::create(u32* code, size_t size, ccstr entryName) {
       .pCode    = code,
   };
 
-  result = vkCreateShaderModule(app->getVkDevice(), &moduleCreateInfo, nullptr,
+  result = vkCreateShaderModule(device, &moduleCreateInfo, nullptr,
                                 &m_shaderInfo.module);
   assert(result == VK_SUCCESS);
 };
 
-void Shader::destroy() {
-  auto* app = Application::GetInstance();
-  vkDestroyShaderModule(app->getVkDevice(), m_shaderInfo.module, nullptr);
+void Shader::destroy(VkDevice device) {
+  vkDestroyShaderModule(device, m_shaderInfo.module, nullptr);
 }
-} // namespace myvk_bs
+} // namespace myvk::bs

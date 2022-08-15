@@ -55,12 +55,38 @@ void CommandBuffer::beginRenderPass(VkRenderPassBeginInfo* pRenderPassBI,
                                     VkSubpassContents      contents) {
   vkCmdBeginRenderPass(cmdBuffer, pRenderPassBI, contents);
 }
-
 void CommandBuffer::endRenderPass() {
   vkCmdEndRenderPass(cmdBuffer);
 }
+
+void CommandBuffer::bindVertexBuffers(u32 firstBinding, u32 bindingCount,
+                                      const VkBuffer*     pBuffers,
+                                      const VkDeviceSize* pOffsets) {
+  vkCmdBindVertexBuffers(cmdBuffer, firstBinding, bindingCount, pBuffers,
+                         pOffsets);
+}
+
+void CommandBuffer::bindVertexBuffer(VkBuffer* buffer) {
+  VkDeviceSize offset = 0;
+  bindVertexBuffers(0, 1, buffer, &offset);
+}
+
+void CommandBuffer::bindPipeline(VkPipelineBindPoint bindPoint,
+                                 VkPipeline          pipeline) {
+  vkCmdBindPipeline(cmdBuffer, bindPoint, pipeline);
+}
+
+void CommandBuffer::bindPipelineGraphic(VkPipeline pipeline) {
+  vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+}
+
+void CommandBuffer::draw(u32 vertexCount, u32 instanceCount, u32 firstVertex,
+                         u32 firstInstance) {
+  vkCmdDraw(cmdBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
 void CommandBuffer::free(VkDevice device, VkCommandPool cmdPool) {
   vkFreeCommandBuffers(device, cmdPool, 1, &cmdBuffer);
 }
 
-} // namespace myvk_bs
+} // namespace myvk::bs

@@ -19,15 +19,16 @@ public:
     void destroy(VkDevice device);
   };
 
-  static constexpr u32 DATA_COUNT = 2;
+  static constexpr u32 DATA_COUNT = 1;
 
   u64                        frameCount{0};
-  std::vector<VkFramebuffer> framebuffers;
   FrameData                  frameData[DATA_COUNT];
+
+  std::vector<VkFramebuffer> framebuffers;
 
   void create(VkDevice device, vkb::Swapchain& swapchain,
               VkRenderPass renderPass, VkExtent2D windowExtent,
-              std::vector<VkImageView>& imageViews, VkImageView depthImage,
+              std::vector<VkImageView>& imageViews, std::optional<VkImageView> depthImageView,
               u32 graphicIndex);
   void destroy(VkDevice device);
 
@@ -35,11 +36,9 @@ public:
   VkResult acquireNextImage(VkDevice device, VkSwapchainKHR swapchain, u64 timeout, u32 *index);
   void freeCmdBuffer(VkDevice device);
 
-  void updateFrameCount() {
-    ++frameCount;
-  }
   FrameData& currentFrameData() {
-    return frameData[frameCount % DATA_COUNT];
+    FrameData & frame = frameData[frameCount % DATA_COUNT];
+    return frame;
   }
 };
 } // namespace myvk_bs

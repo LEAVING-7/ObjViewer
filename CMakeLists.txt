@@ -14,9 +14,10 @@ add_executable(ObjViewer)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src TARGET_SRC)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/bootstrap MYVK_SRC)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/GUI GUI_SRC)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/DataType DATA_TYPE_SRC)
 
 
-target_sources(ObjViewer PUBLIC ${MYVK_SRC} ${TARGET_SRC} ${GUI_SRC})
+target_sources(ObjViewer PUBLIC ${MYVK_SRC} ${TARGET_SRC} ${GUI_SRC} ${DATA_TYPE_SRC})
 target_include_directories(ObjViewer PUBLIC include ${Vulkan_INCLUDE_DIR})
 target_link_libraries(ObjViewer PUBLIC ${Vulkan_LIBRARY} 
                         spdlog::spdlog glfw3 

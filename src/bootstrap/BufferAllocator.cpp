@@ -19,9 +19,8 @@ BufferAllocator::createImage(VkImageCreateInfo*       pInfo,
                              VmaAllocationCreateInfo* pAllocCreateInfo,
                              VmaAllocationInfo*       pAllocInfo) {
   AllocatedImage ret;
-
-  VkResult result = vmaCreateImage(m_allocator, pInfo, pAllocCreateInfo,
-                                   &ret.image, &ret.allocation, pAllocInfo);
+  VkResult       result = vmaCreateImage(m_allocator, pInfo, pAllocCreateInfo,
+                                         &ret.image, &ret.allocation, pAllocInfo);
   assert(result == VK_SUCCESS);
   return ret;
 }
@@ -33,7 +32,7 @@ BufferAllocator::createBuffer(VkBufferCreateInfo*      pInfo,
                               VmaAllocationCreateInfo* pAllocCreateInfo,
                               VmaAllocationInfo*       pAllocInfo) {
   AllocatedBuffer ret;
-
+  ret.size = pInfo->size;
   VkResult result = vmaCreateBuffer(m_allocator, pInfo, pAllocCreateInfo,
                                     &ret.buffer, &ret.allocation, pAllocInfo);
   assert(result == VK_SUCCESS);
@@ -42,4 +41,4 @@ BufferAllocator::createBuffer(VkBufferCreateInfo*      pInfo,
 void BufferAllocator::destroyBuffer(AllocatedBuffer buffer) {
   vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
 }
-} // namespace myvk_bs
+} // namespace myvk::bs

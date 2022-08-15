@@ -28,7 +28,11 @@ GraphicPipelineBuilder::setDynamic(uint32_t              dynamicStateCount,
   };
   return *this;
 }
-
+GraphicPipelineBuilder& GraphicPipelineBuilder::setVertexInput(
+    data::VertexInputDescription&& vertDesc) {
+  return setVertexInput(vertDesc.bindings.size(), vertDesc.bindings.data(),
+                        vertDesc.attributes.size(), vertDesc.attributes.data());
+}
 GraphicPipelineBuilder& GraphicPipelineBuilder::setVertexInput(
     u32                                      vertexBindingDescriptionCount,
     const VkVertexInputBindingDescription*   pVertexBindingDescriptions,
@@ -244,4 +248,4 @@ VkPipeline GraphicPipelineBuilder::build(VkDevice                device,
   return ret;
 }
 
-} // namespace myvk_bs
+} // namespace myvk::bs

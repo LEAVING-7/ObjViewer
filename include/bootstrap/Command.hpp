@@ -27,9 +27,18 @@ struct CommandBuffer {
                        VkSubpassContents      contents);
   void endRenderPass();
 
+  void bindVertexBuffer(VkBuffer* buffer);
+  void bindVertexBuffers(u32 firstBinding, u32 bindingCount,
+                         const VkBuffer*     pBuffers,
+                         const VkDeviceSize* pOffsets);
+  void bindPipeline(VkPipelineBindPoint bindPoint, VkPipeline pipeline);
+  void bindPipelineGraphic(VkPipeline pipeline);
+  void draw(u32 vertexCount, u32 instanceCount, u32 firstVertex,
+            u32 firstInstance);
+
   void free(VkDevice device, VkCommandPool cmdPool);
 
   MYVK_CONVERT_OP(CommandBuffer, cmdBuffer);
   MYVK_ADDRESS_OP(CommandBuffer, cmdBuffer);
 };
-} // namespace myvk_bs
+} // namespace myvk::bs

@@ -1,8 +1,15 @@
 #include "bootstrap/Renderer.hpp"
 
+#include "DataType/Vertex.hpp"
 #include "bootstrap/Application.hpp"
 
 namespace myvk::bs {
+
+const std::vector<data::Vertex> g_vertices = {
+    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
+
 void windowKeyCallback(GLFWwindow* window, int key, int scancode, int action,
                        int mods) {
   if (key == GLFW_KEY_ESCAPE) {
@@ -16,30 +23,33 @@ void windowFramebufferResizeCallback(GLFWwindow* window, int width,
                                      int height) {
   Renderer* renderer =
       reinterpret_cast<Renderer*>(gui::MainWindow::getUserPointer(window));
-
   renderer->m_window.m_framebufferResized = true;
 }
 
 void Renderer::create(Application* app) {
   m_application = app;
   getGraphicQueueAndQueueIndex();
-  createDepthImages();
+  // createDepthImages();
   createSwapchain();
   createRenderPass(true);
   createShaders();
   createDefaultPipeline();
   createFrameBuffer(true);
+
+  createMesh();
 }
 
 void Renderer::destroy() {
   vkDeviceWaitIdle(*m_application);
+
+  destroyMesh();
 
   destroyFrameBuffer();
   destroyDefaultPipeline();
   destroyShaders();
   destroyRenderPass();
   destroySwapchain();
-  destroyDepthImages();
+  // destroyDepthImages();
 }
 
 void Renderer::recreateSwapchain() {
@@ -73,15 +83,16 @@ void Renderer::render() {
   glfwPollEvents();
   VkResult result;
 
-  m_frameBuffer.updateFrameCount();
   auto& currentData = m_frameBuffer.currentFrameData();
 
-  vkWaitForFences(*m_application, 1, &currentData.renderFence, true, 1'000'000);
+  vkWaitForFences(*m_application, 1, &currentData.renderFence, true,
+                  std::numeric_limits<u64>::max());
 
   u32 swapchainImgIdx;
 
   result = m_frameBuffer.acquireNextImage(*m_application, *m_swapchainObj,
-                                          1'000'000, &swapchainImgIdx);
+                                          std::numeric_limits<u64>::max(),
+                                          &swapchainImgIdx);
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
       m_window.isFramebufferResized()) {
@@ -94,16 +105,14 @@ void Renderer::render() {
   }
 
   currentData.renderFence.reset(*m_application);
-
-  currentData.cmdBuffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
   VkClearValue colorClear{
-      .color = {{0.f, 0.f, (float(sin(m_frameBuffer.frameCount)) + 1.f) / 2.f,
-                 1.f}},
+      .color = {{0.5f, 0.3f, 0.4f, 1.f}},
   };
 
   VkClearValue depthClear{
       .depthStencil = {.depth = 1.f},
   };
+
   VkClearValue clearValue[2] = {colorClear, depthClear};
 
   VkRenderPassBeginInfo renderPassBI{
@@ -119,9 +128,15 @@ void Renderer::render() {
       .clearValueCount = 2,
       .pClearValues    = clearValue,
   };
+  currentData.cmdBuffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
   currentData.cmdBuffer.beginRenderPass(&renderPassBI,
                                         VK_SUBPASS_CONTENTS_INLINE);
+
+  currentData.cmdBuffer.bindPipelineGraphic(m_defaultPipeline);
+
+  // currentData.cmdBuffer.bindVertexBuffer(&m_testMesh.buffer);
+  currentData.cmdBuffer.draw(3, 1, 0, 0);
 
   currentData.cmdBuffer.endRenderPass();
   currentData.cmdBuffer.end();
@@ -154,6 +169,8 @@ void Renderer::render() {
   };
 
   vkQueuePresentKHR(m_graphicQueue, &presentInfo);
+  m_frameBuffer.frameCount++;
+  // m_frameBuffer.updateFrameCount();
 }
 
 bool Renderer::windowShouldClose() {
@@ -243,20 +260,20 @@ void Renderer::createRenderPass(bool includeDepth, bool clear) {
       .finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
   };
 
-  VkAttachmentReference colorAttachmentRef{
-      .attachment = 0,
-      .layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-  };
-
   VkAttachmentDescription depthAttachment{
       .format         = m_depthImageFormat,
       .samples        = VK_SAMPLE_COUNT_1_BIT,
       .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
-      .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
+      .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
       .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+  };
+
+  VkAttachmentReference colorAttachmentRef{
+      .attachment = 0,
+      .layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
   };
 
   VkAttachmentReference depthAttachmentRef{
@@ -268,15 +285,16 @@ void Renderer::createRenderPass(bool includeDepth, bool clear) {
       .pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
       .colorAttachmentCount    = 1,
       .pColorAttachments       = &colorAttachmentRef,
-      .pDepthStencilAttachment = &depthAttachmentRef,
+      .pDepthStencilAttachment = nullptr,
   };
   VkSubpassDependency colorDependency{
-      .srcSubpass      = VK_SUBPASS_EXTERNAL,
-      .dstSubpass      = 0,
-      .srcStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-      .dstStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-      .srcAccessMask   = 0,
-      .dstAccessMask   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+      .srcSubpass    = VK_SUBPASS_EXTERNAL,
+      .dstSubpass    = 0,
+      .srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+      .dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+      .srcAccessMask = 0,
+      .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
       .dependencyFlags = 0,
   };
   VkSubpassDependency depthDependency = {
@@ -291,16 +309,16 @@ void Renderer::createRenderPass(bool includeDepth, bool clear) {
   };
 
   VkSubpassDependency     dependencies[2]{colorDependency, depthDependency};
-  VkAttachmentDescription attachments[2]{colorAttachment, depthAttachment};
+  VkAttachmentDescription attachments[]{colorAttachment};
 
   VkRenderPassCreateInfo renderPassCI{
       .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-      .attachmentCount = 2,
-      .pAttachments    = &attachments[0],
+      .attachmentCount = std::size(attachments),
+      .pAttachments    = attachments,
       .subpassCount    = 1,
       .pSubpasses      = &subpass,
-      .dependencyCount = 0,
-      .pDependencies   = nullptr,
+      .dependencyCount = 1,
+      .pDependencies   = &colorDependency,
   };
 
   auto result = vkCreateRenderPass(m_application->getVkDevice(), &renderPassCI,
@@ -314,7 +332,7 @@ void Renderer::destroyRenderPass() {
 void Renderer::createFrameBuffer(bool includeDepth) {
   m_frameBuffer.create(*m_application, m_swapchainObj->m_swapchain,
                        m_renderPass, {m_window.m_width, m_window.m_height},
-                       m_swapchainObj->m_imageViews, m_depthImageView,
+                       m_swapchainObj->m_imageViews, std::nullopt,
                        m_graphicQueueIndex);
 }
 
@@ -340,20 +358,20 @@ void Renderer::createShaders() {
   assert(vertResult.has_value());
 
   Shader mainVert{"mainVert", VK_SHADER_STAGE_VERTEX_BIT};
-  mainVert.create(vertResult.value());
+  mainVert.create(*m_application, vertResult.value());
   m_shaders[mainVert.m_name] = std::move(mainVert);
 
   auto fragResult = readFromFile("shaders/main.frag.spv", "rb");
   assert(fragResult.has_value());
 
   Shader mainFrag{"mainFrag", VK_SHADER_STAGE_FRAGMENT_BIT};
-  mainFrag.create(fragResult.value());
+  mainFrag.create(*m_application, fragResult.value());
   m_shaders[mainFrag.m_name] = std::move(mainFrag);
 }
 
 void Renderer::destroyShaders() {
   for (auto& [_, shader] : m_shaders) {
-    shader.destroy();
+    shader.destroy(*m_application);
   }
 }
 
@@ -364,6 +382,7 @@ void Renderer::createDefaultPipeline() {
       .pNext                  = nullptr,
       .flags                  = 0,
       .setLayoutCount         = 0,
+      .pSetLayouts            = nullptr,
       .pushConstantRangeCount = 0,
       .pPushConstantRanges    = nullptr,
   };
@@ -383,7 +402,7 @@ void Renderer::createDefaultPipeline() {
           .setRasterization(VK_FALSE, VK_FALSE, VK_POLYGON_MODE_FILL,
                             VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE,
                             VK_FALSE, 0, 0, 0, 1)
-          .setDynamic(u32(std::size(dynamicState)), dynamicState)
+          .setDynamic()
           .noColorBlend(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                         VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT)
           .setViewPortAndScissor(
@@ -403,8 +422,7 @@ void Renderer::createDefaultPipeline() {
                             0, 1)
           .setMultisample(VK_SAMPLE_COUNT_1_BIT, VK_FALSE, 1.f, nullptr,
                           VK_FALSE, VK_FALSE)
-          .build(m_application->getVkDevice(), m_renderPass,
-                 m_defaultPipelineLayout);
+          .build(*m_application, m_renderPass, m_defaultPipelineLayout);
 }
 
 void Renderer::destroyDefaultPipeline() {
@@ -422,4 +440,30 @@ void Renderer::getGraphicQueueAndQueueIndex() {
           .value();
 }
 
+void Renderer::createMesh() {
+  VkBufferCreateInfo vertexBufferCI{
+      .sType                 = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .pNext                 = nullptr,
+      .flags                 = 0,
+      .size                  = sizeof(g_vertices[0]) * g_vertices.size(),
+      .usage                 = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      .sharingMode           = VK_SHARING_MODE_EXCLUSIVE,
+      .queueFamilyIndexCount = 1,
+      .pQueueFamilyIndices   = &m_graphicQueueIndex,
+  };
+  VmaAllocationCreateInfo vertexAI{
+      .usage = VMA_MEMORY_USAGE_CPU_TO_GPU,
+  };
+  BufferAllocator& allocator = m_application->m_allocator;
+  m_testMesh = allocator.createBuffer(&vertexBufferCI, &vertexAI);
+  void* data;
+  allocator.mmap(m_testMesh, &data);
+  memcpy(data, g_vertices.data(), m_testMesh.size);
+  allocator.munmap(m_testMesh);
+}
+
+void Renderer::destroyMesh() {
+  BufferAllocator& allocator = m_application->m_allocator;
+  allocator.destroyBuffer(m_testMesh);
+}
 } // namespace myvk::bs

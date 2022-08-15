@@ -2,6 +2,7 @@
 #include "common.hpp"
 #include "pch.hpp"
 
+#include "DataType/Vertex.hpp"
 namespace myvk::bs {
 struct GraphicPipelineBuilder {
 
@@ -66,6 +67,8 @@ struct GraphicPipelineBuilder {
   setDynamic(uint32_t              dynamicStateCount = 0,
              const VkDynamicState* pDynamicStates    = nullptr);
 
+  GraphicPipelineBuilder&
+  setVertexInput(data::VertexInputDescription&& vertDesc);
   GraphicPipelineBuilder& setVertexInput(
       u32                                      vertexBindingDescriptionCount,
       const VkVertexInputBindingDescription*   pVertexBindingDescriptions,
@@ -119,4 +122,4 @@ struct GraphicPipelineBuilder {
                                                      size_t scissorCount);
 };
 
-} // namespace myvk_bs
+} // namespace myvk::bs

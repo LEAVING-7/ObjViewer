@@ -12,6 +12,7 @@ struct AllocatedImage {
 struct AllocatedBuffer {
   VkBuffer      buffer;
   VmaAllocation allocation;
+  size_t        size;
 };
 
 class BufferAllocator {
@@ -29,6 +30,29 @@ public:
                                VmaAllocationCreateInfo* pAllocCreateInfo,
                                VmaAllocationInfo*       pAllocInfo = nullptr);
   void            destroyBuffer(AllocatedBuffer buffer);
+
+  VkResult mmap(AllocatedBuffer& buffer, void** ppData) {
+    return vmaMapMemory(m_allocator, buffer.allocation, ppData);
+  }
+
+  void munmap(AllocatedBuffer& buffer) {
+    vmaUnmapMemory(m_allocator, buffer.allocation);
+  }
+  VkResult mmap(AllocatedImage& buffer, void** ppData) {
+    return vmaMapMemory(m_allocator, buffer.allocation, ppData);
+  }
+
+  void munmap(AllocatedImage& buffer) {
+    vmaUnmapMemory(m_allocator, buffer.allocation);
+  }
+
+  void flushMapedMemory(AllocatedBuffer& buffer) {
+    vmaFlushAllocation(m_allocator, buffer.allocation, 0, buffer.size);
+  }
+
+  void invalidMappedMemory(AllocatedBuffer& buffer) {
+    vmaInvalidateAllocation(m_allocator, buffer.allocation, 0, buffer.size);
+  }
 };
 
-} // namespace myvk_bs
+} // namespace myvk::bs
