@@ -135,8 +135,8 @@ void Renderer::render() {
 
   currentData.cmdBuffer.bindPipelineGraphic(m_defaultPipeline);
 
-  // currentData.cmdBuffer.bindVertexBuffer(&m_testMesh.buffer);
-  currentData.cmdBuffer.draw(3, 1, 0, 0);
+  currentData.cmdBuffer.bindVertexBuffer(&m_testMesh.buffer);
+  currentData.cmdBuffer.draw(g_vertices.size(), 1, 0, 0);
 
   currentData.cmdBuffer.endRenderPass();
   currentData.cmdBuffer.end();
@@ -321,12 +321,12 @@ void Renderer::createRenderPass(bool includeDepth, bool clear) {
       .pDependencies   = &colorDependency,
   };
 
-  auto result = vkCreateRenderPass(m_application->getVkDevice(), &renderPassCI,
+  auto result = vkCreateRenderPass(*m_application, &renderPassCI,
                                    nullptr, &m_renderPass);
   assert(result == VK_SUCCESS);
 }
 void Renderer::destroyRenderPass() {
-  vkDestroyRenderPass(m_application->getVkDevice(), m_renderPass, nullptr);
+  vkDestroyRenderPass(*m_application, m_renderPass, nullptr);
 }
 
 void Renderer::createFrameBuffer(bool includeDepth) {
@@ -397,7 +397,7 @@ void Renderer::createDefaultPipeline() {
       (*m_defaultPipelineBuilder)
           .setShader({m_shaders["mainVert"].m_shaderInfo,
                       m_shaders["mainFrag"].m_shaderInfo})
-          .setVertexInput(0, nullptr, 0, nullptr)
+          .setVertexInput(data::Vertex::GetDescription())
           .setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
           .setRasterization(VK_FALSE, VK_FALSE, VK_POLYGON_MODE_FILL,
                             VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE,

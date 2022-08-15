@@ -5,7 +5,7 @@
 #include "bootstrap/Command.hpp"
 #include "bootstrap/SyncStructures.hpp"
 
-// TODO : FrameBuffer
+
 namespace myvk::bs {
 class Framebuffer {
 public:
