@@ -1,14 +1,20 @@
-#include "bootstrap/Renderer.hpp"
+#include "Application/Renderer.hpp"
+#include "Application/Application.hpp"
 
 #include "DataType/Vertex.hpp"
-#include "bootstrap/Application.hpp"
 
 namespace myvk::bs {
 
 const std::vector<data::Vertex> g_vertices = {
-    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}},
+};
+
+const std::vector<u16> g_indices = {
+    0, 1, 2, 2, 3, 0,
+};
 
 void windowKeyCallback(GLFWwindow* window, int key, int scancode, int action,
                        int mods) {
@@ -65,11 +71,11 @@ void Renderer::recreateSwapchain() {
   destroyShaders();
   destroyRenderPass();
   destroySwapchain();
-  destroyDepthImages();
+  // destroyDepthImages();
 
   m_window.updateExtent();
 
-  createDepthImages();
+  // createDepthImages();
   createSwapchain();
   createRenderPass(true);
   createShaders();
@@ -89,7 +95,6 @@ void Renderer::render() {
                   std::numeric_limits<u64>::max());
 
   u32 swapchainImgIdx;
-
   result = m_frameBuffer.acquireNextImage(*m_application, *m_swapchainObj,
                                           std::numeric_limits<u64>::max(),
                                           &swapchainImgIdx);
@@ -128,15 +133,20 @@ void Renderer::render() {
       .clearValueCount = 2,
       .pClearValues    = clearValue,
   };
+
+  // automatically set cmdBuffer to initial
   currentData.cmdBuffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
   currentData.cmdBuffer.beginRenderPass(&renderPassBI,
                                         VK_SUBPASS_CONTENTS_INLINE);
-
   currentData.cmdBuffer.bindPipelineGraphic(m_defaultPipeline);
 
   currentData.cmdBuffer.bindVertexBuffer(&m_testMesh.buffer);
-  currentData.cmdBuffer.draw(g_vertices.size(), 1, 0, 0);
+  currentData.cmdBuffer.bindIndexBuffer(m_testIndex.buffer,
+                                        VK_INDEX_TYPE_UINT16);
+
+  // currentData.cmdBuffer.draw(g_vertices.size(), 1, 0, 0);
+  currentData.cmdBuffer.drawIndexed(g_indices.size(), 1, 0, 0, 0);
 
   currentData.cmdBuffer.endRenderPass();
   currentData.cmdBuffer.end();
@@ -170,7 +180,6 @@ void Renderer::render() {
 
   vkQueuePresentKHR(m_graphicQueue, &presentInfo);
   m_frameBuffer.frameCount++;
-  // m_frameBuffer.updateFrameCount();
 }
 
 bool Renderer::windowShouldClose() {
@@ -321,8 +330,8 @@ void Renderer::createRenderPass(bool includeDepth, bool clear) {
       .pDependencies   = &colorDependency,
   };
 
-  auto result = vkCreateRenderPass(*m_application, &renderPassCI,
-                                   nullptr, &m_renderPass);
+  auto result =
+      vkCreateRenderPass(*m_application, &renderPassCI, nullptr, &m_renderPass);
   assert(result == VK_SUCCESS);
 }
 void Renderer::destroyRenderPass() {
@@ -333,7 +342,7 @@ void Renderer::createFrameBuffer(bool includeDepth) {
   m_frameBuffer.create(*m_application, m_swapchainObj->m_swapchain,
                        m_renderPass, {m_window.m_width, m_window.m_height},
                        m_swapchainObj->m_imageViews, std::nullopt,
-                       m_graphicQueueIndex);
+                       m_graphicQueueIndex, m_transferQueueIndex);
 }
 
 void Renderer::destroyFrameBuffer() {
@@ -432,38 +441,77 @@ void Renderer::destroyDefaultPipeline() {
 }
 
 void Renderer::getGraphicQueueAndQueueIndex() {
-  m_graphicQueueIndex = m_application->m_deviceObj->m_device
-                            .get_queue_index(vkb::QueueType::graphics)
-                            .value();
-  m_graphicQueue =
-      m_application->m_deviceObj->m_device.get_queue(vkb::QueueType::graphics)
-          .value();
+
+  vkb::Device& device = m_application->m_deviceObj->m_device;
+  m_graphicQueueIndex =
+      device.get_queue_index(vkb::QueueType::graphics).value();
+  m_graphicQueue = device.get_queue(vkb::QueueType::graphics).value();
+
+  m_transferQueueIndex =
+      device.get_queue_index(vkb::QueueType::transfer).value();
+  m_transferQueue = device.get_queue(vkb::QueueType::transfer).value();
 }
 
 void Renderer::createMesh() {
+
+  auto& currentFrame = m_frameBuffer.currentFrameData();
+
   VkBufferCreateInfo vertexBufferCI{
-      .sType                 = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext                 = nullptr,
-      .flags                 = 0,
-      .size                  = sizeof(g_vertices[0]) * g_vertices.size(),
-      .usage                 = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      .sharingMode           = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 1,
-      .pQueueFamilyIndices   = &m_graphicQueueIndex,
+      .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .pNext       = nullptr,
+      .flags       = 0,
+      .size        = sizeof(g_vertices[0]) * g_vertices.size(),
+      .usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
   };
   VmaAllocationCreateInfo vertexAI{
+      .usage = VMA_MEMORY_USAGE_CPU_ONLY,
+  };
+
+  BufferAllocator& allocator = m_application->m_allocator;
+  AllocatedBuffer  stagingBuffer =
+      allocator.createBuffer(&vertexBufferCI, &vertexAI);
+  stagingBuffer.transferMemory(allocator, (void*)(g_vertices.data()),
+                               stagingBuffer.size);
+  VkBufferCreateInfo dstBufferCI{
+      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .pNext = NULL,
+      .flags = 0,
+      .size  = stagingBuffer.size,
+      .usage =
+          VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+  };
+  vertexAI.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+  m_testMesh     = allocator.createBuffer(&dstBufferCI, &vertexAI);
+
+  stagingBuffer.copyTo(m_testMesh, *m_application, currentFrame.stagingCmdPool,
+                       m_transferQueue);
+  allocator.destroyBuffer(stagingBuffer);
+
+  VkBufferCreateInfo indexCI{
+      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .pNext = nullptr,
+      .flags = 0,
+      .size  = sizeof(g_indices[0]) * g_indices.size(),
+      .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+  };
+  VmaAllocationCreateInfo indexAI{
       .usage = VMA_MEMORY_USAGE_CPU_TO_GPU,
   };
-  BufferAllocator& allocator = m_application->m_allocator;
-  m_testMesh = allocator.createBuffer(&vertexBufferCI, &vertexAI);
-  void* data;
-  allocator.mmap(m_testMesh, &data);
-  memcpy(data, g_vertices.data(), m_testMesh.size);
-  allocator.munmap(m_testMesh);
+  m_testIndex = allocator.createBuffer(&indexCI, &indexAI);
+  m_testIndex.transferMemory(allocator, (void*)g_indices.data(),
+                             m_testIndex.size);
 }
 
 void Renderer::destroyMesh() {
+  
+  VkDescriptorSetLayoutCreateInfo layout = {
+
+  };
   BufferAllocator& allocator = m_application->m_allocator;
   allocator.destroyBuffer(m_testMesh);
+  allocator.destroyBuffer(m_testIndex);
 }
+
 } // namespace myvk::bs

@@ -58,6 +58,8 @@ public:
   void createMesh();
   void destroyMesh();
 
+  void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevice device);
+
 public:
   gui::MainWindow m_window;
 
@@ -77,9 +79,11 @@ public:
 
   VkQueue m_graphicQueue;
   u32     m_graphicQueueIndex;
+  VkQueue m_transferQueue;
+  u32     m_transferQueueIndex;
 
   AllocatedBuffer m_testMesh;
-
+  AllocatedBuffer m_testIndex;
   // private:
   Application*               m_application;
   std::unique_ptr<Swapchain> m_swapchainObj;

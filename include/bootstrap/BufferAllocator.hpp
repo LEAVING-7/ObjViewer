@@ -2,7 +2,10 @@
 #include "common.hpp"
 #include "pch.hpp"
 
+#include "bootstrap/Command.hpp"
 namespace myvk::bs {
+
+class BufferAllocator;
 
 struct AllocatedImage {
   VkImage       image;
@@ -13,6 +16,12 @@ struct AllocatedBuffer {
   VkBuffer      buffer;
   VmaAllocation allocation;
   size_t        size;
+
+  void copyTo(AllocatedBuffer& dstBuffer, VkDevice device, CommandPool pool,
+              VkQueue transferQueue);
+
+  void transferMemory(BufferAllocator& allocator, void* const data,
+                      size_t size);
 };
 
 class BufferAllocator {

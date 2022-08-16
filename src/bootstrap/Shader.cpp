@@ -1,5 +1,4 @@
 #include "bootstrap/Shader.hpp"
-#include "bootstrap/Application.hpp"
 namespace myvk::bs {
 
 void Shader::create(VkDevice device, u32* code, size_t size, ccstr entryName) {

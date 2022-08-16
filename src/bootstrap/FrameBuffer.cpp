@@ -2,18 +2,22 @@
 #include "bootstrap/Swapchain.hpp"
 
 namespace myvk::bs {
-void Framebuffer::FrameData::create(VkDevice device, u32 graphicIndex) {
+void Framebuffer::FrameData::create(VkDevice device, u32 graphicIndex,
+                                    u32 transferIndex) {
   create1(device, presentSemaphore, renderSemaphore);
   // create signaled fence
   renderFence.createSignaled(device);
-  cmdPool.create(device, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-                 graphicIndex);
-  cmdBuffer.create(device, cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+  mainCmdPool.create(device, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+                     graphicIndex);
+  stagingCmdPool.create(device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+                        transferIndex);
+  cmdBuffer.alloc(device, mainCmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 }
 
 void Framebuffer::FrameData::destroy(VkDevice device) {
-  cmdBuffer.destroy(device, cmdPool);
-  cmdPool.destroy(device);
+  cmdBuffer.free(device, mainCmdPool);
+  stagingCmdPool.destroy(device);
+  mainCmdPool.destroy(device);
   destroy1(device, presentSemaphore, renderSemaphore, renderFence);
 }
 
@@ -21,9 +25,10 @@ void Framebuffer::create(VkDevice device, vkb::Swapchain& swapchain,
                          VkRenderPass renderPass, VkExtent2D windowExtent,
                          std::vector<VkImageView>&  imageViews,
                          std::optional<VkImageView> depthImageView,
-                         u32                        graphicIndex) {
+                         u32                        graphicIndex, u32 transferIndex) {
+
   for (auto& frame : frameData) {
-    frame.create(device, graphicIndex);
+    frame.create(device, graphicIndex, transferIndex);
   }
 
   VkFramebufferCreateInfo CI{
@@ -72,7 +77,7 @@ VkResult Framebuffer::acquireNextImage(VkDevice       device,
 
 void Framebuffer::freeCmdBuffer(VkDevice device) {
   for (FrameData& frame : frameData) {
-    frame.cmdBuffer.free(device, frameData->cmdPool);
+    frame.cmdBuffer.free(device, frameData->mainCmdPool);
   }
 }
 } // namespace myvk::bs

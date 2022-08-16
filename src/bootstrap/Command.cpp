@@ -15,8 +15,8 @@ void CommandPool::create(VkDevice device, VkCommandPoolCreateFlags flag,
 void CommandPool::destroy(VkDevice device) {
   vkDestroyCommandPool(device, cmdPool, nullptr);
 }
-void CommandBuffer::create(VkDevice device, VkCommandPool cmdPool,
-                           VkCommandBufferLevel level) {
+void CommandBuffer::alloc(VkDevice device, VkCommandPool cmdPool,
+                          VkCommandBufferLevel level) {
   VkCommandBufferAllocateInfo AI{
       .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
       .pNext              = nullptr,
@@ -27,7 +27,7 @@ void CommandBuffer::create(VkDevice device, VkCommandPool cmdPool,
   auto result = vkAllocateCommandBuffers(device, &AI, &cmdBuffer);
   assert(result == VK_SUCCESS);
 }
-void CommandBuffer::destroy(VkDevice device, VkCommandPool cmdPool) {
+void CommandBuffer::free(VkDevice device, VkCommandPool cmdPool) {
   vkFreeCommandBuffers(device, cmdPool, 1, &cmdBuffer);
 }
 
@@ -71,6 +71,16 @@ void CommandBuffer::bindVertexBuffer(VkBuffer* buffer) {
   bindVertexBuffers(0, 1, buffer, &offset);
 }
 
+void CommandBuffer::bindIndexBuffer(VkBuffer buffer, VkIndexType indexType,
+                                    size_t offset) {
+  vkCmdBindIndexBuffer(cmdBuffer, buffer, offset, indexType);
+}
+
+void CommandBuffer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
+                               u32 regionCount, const VkBufferCopy* pRegions) {
+  vkCmdCopyBuffer(cmdBuffer, srcBuffer, dstBuffer, regionCount, pRegions);
+}
+
 void CommandBuffer::bindPipeline(VkPipelineBindPoint bindPoint,
                                  VkPipeline          pipeline) {
   vkCmdBindPipeline(cmdBuffer, bindPoint, pipeline);
@@ -85,8 +95,11 @@ void CommandBuffer::draw(u32 vertexCount, u32 instanceCount, u32 firstVertex,
   vkCmdDraw(cmdBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void CommandBuffer::free(VkDevice device, VkCommandPool cmdPool) {
-  vkFreeCommandBuffers(device, cmdPool, 1, &cmdBuffer);
+void CommandBuffer::drawIndexed(u32 indexCount, u32 instanceCount,
+                                u32 firstIndex, u32 vertexOffset,
+                                u32 firstInstance) {
+  vkCmdDrawIndexed(cmdBuffer, indexCount, instanceCount, firstIndex,
+                   vertexOffset, firstInstance);
 }
 
 } // namespace myvk::bs

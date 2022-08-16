@@ -15,9 +15,9 @@ struct CommandPool {
 struct CommandBuffer {
   VkCommandBuffer cmdBuffer;
 
-  void create(VkDevice device, VkCommandPool cmdPool,
-              VkCommandBufferLevel level);
-  void destroy(VkDevice device, VkCommandPool cmdPool);
+  void alloc(VkDevice device, VkCommandPool cmdPool,
+             VkCommandBufferLevel level);
+  void free(VkDevice device, VkCommandPool cmdPool);
 
   void reset(VkCommandBufferResetFlags flag);
   void begin(VkCommandBufferUsageFlags             flag,
@@ -31,12 +31,17 @@ struct CommandBuffer {
   void bindVertexBuffers(u32 firstBinding, u32 bindingCount,
                          const VkBuffer*     pBuffers,
                          const VkDeviceSize* pOffsets);
+
+  void bindIndexBuffer(VkBuffer buffer, VkIndexType indexType,
+                       size_t offset = 0);
   void bindPipeline(VkPipelineBindPoint bindPoint, VkPipeline pipeline);
   void bindPipelineGraphic(VkPipeline pipeline);
   void draw(u32 vertexCount, u32 instanceCount, u32 firstVertex,
             u32 firstInstance);
-
-  void free(VkDevice device, VkCommandPool cmdPool);
+  void drawIndexed(u32 indexCount, u32 instanceCount, u32 firstIndex,
+                   u32 vertexOffset, u32 firstInstance);
+  void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, u32 regionCount,
+                  const VkBufferCopy* pRegions);
 
   MYVK_CONVERT_OP(CommandBuffer, cmdBuffer);
   MYVK_ADDRESS_OP(CommandBuffer, cmdBuffer);

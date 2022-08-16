@@ -3,7 +3,8 @@
 #include "bootstrap/BufferAllocator.hpp"
 #include "bootstrap/Device.hpp"
 #include "bootstrap/Instance.hpp"
-#include "bootstrap/Renderer.hpp"
+
+#include "Application/Renderer.hpp"
 
 namespace myvk::bs {
 

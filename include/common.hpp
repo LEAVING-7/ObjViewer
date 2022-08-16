@@ -59,7 +59,7 @@ using ccstr = char const*;
   }
 
 #define MYVK_ADDRESS_OP(name, value)                                           \
-  Vk##name *operator&() {                                                       \
+  Vk##name* operator&() {                                                      \
     return &value;                                                             \
   }
 
@@ -87,3 +87,8 @@ template <typename FirstArgT, typename... Creatable>
 void create1(FirstArgT&& firstArg, Creatable&&... destroyList) {
   (destroyList.create(std::forward<FirstArgT>(firstArg)), ...);
 }
+
+struct VkResultChecker {
+  VkResultChecker(VkResult result);
+  VkResultChecker& operator=(VkResult result);
+};

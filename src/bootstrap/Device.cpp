@@ -1,5 +1,4 @@
 #include "bootstrap/Device.hpp"
-#include "bootstrap/Application.hpp"
 
 namespace myvk::bs {
 void Device::create(vkb::PhysicalDevice& gpu, std::vector<ccstr>& layers,
