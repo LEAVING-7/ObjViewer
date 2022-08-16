@@ -16,19 +16,42 @@ const std::vector<u16> g_indices = {
     0, 1, 2, 2, 3, 0,
 };
 
+struct UniformBufferObject {
+  glm::mat4 model;
+  glm::mat4 view;
+  glm::mat4 proj;
+} g_uniformData;
+
 void windowKeyCallback(GLFWwindow* window, int key, int scancode, int action,
                        int mods) {
+  Renderer* renderer = gui::MainWindow::getUserPointer<Renderer*>(window);
+  data::Camera &camera = renderer->m_state.camera;
+  using enum data::Camera::MoveDirection;
+  LOG_INFO("{} {} {}", camera.position.x, camera.position.y, camera.position.z);
   if (key == GLFW_KEY_ESCAPE) {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
+  } else if (key == GLFW_KEY_W) {
+    renderer->m_state.camera.move(eForward);
+  } else if (key == GLFW_KEY_A) {
+    renderer->m_state.camera.move(eLeft);
+  } else if (key == GLFW_KEY_S) {
+    renderer->m_state.camera.move(eBackward);
+  } else if (key == GLFW_KEY_D) {
+    renderer->m_state.camera.move(eRight);
   }
 }
 
-void windowCursorPosCallback(GLFWwindow* window, double xpos, double ypos) {}
+void windowCursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
+  Renderer* renderer = gui::MainWindow::getUserPointer<Renderer*>(window);
+  // float     width    = renderer->m_window.m_width / 2.f;
+  // float     height   = renderer->m_window.m_height / 2.f;
+  // renderer->m_state.camera.processMouseMovement(xpos - width, ypos - height);
+  // glfwSetCursorPos(window, width, height);
+}
 
 void windowFramebufferResizeCallback(GLFWwindow* window, int width,
                                      int height) {
-  Renderer* renderer =
-      reinterpret_cast<Renderer*>(gui::MainWindow::getUserPointer(window));
+  Renderer* renderer = gui::MainWindow::getUserPointer<Renderer*>(window);
   renderer->m_window.m_framebufferResized = true;
 }
 
@@ -39,6 +62,7 @@ void Renderer::create(Application* app) {
   createSwapchain();
   createRenderPass(true);
   createShaders();
+  createDescriptorSets();
   createDefaultPipeline();
   createFrameBuffer(true);
 
@@ -52,6 +76,7 @@ void Renderer::destroy() {
 
   destroyFrameBuffer();
   destroyDefaultPipeline();
+  destroyDescriptorSets();
   destroyShaders();
   destroyRenderPass();
   destroySwapchain();
@@ -141,13 +166,28 @@ void Renderer::render() {
                                         VK_SUBPASS_CONTENTS_INLINE);
   currentData.cmdBuffer.bindPipelineGraphic(m_defaultPipeline);
 
+  float time          = glfwGetTime();
+  g_uniformData.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
+                                    glm::vec3(0.0f, 0.0f, 1.0f));
+  g_uniformData.view  = m_state.camera.viewMat();
+  g_uniformData.proj  = glm::perspective(
+       glm::radians(45.0f), m_window.m_width / (float)m_window.m_height, 0.1f,
+       10.0f);
+
+  m_uniformBuffer.transferMemory(m_application->m_allocator, &g_uniformData,
+                                 sizeof(g_uniformData));
+
+  g_uniformData.proj[1][1] *= -1;
+
   currentData.cmdBuffer.bindVertexBuffer(&m_testMesh.buffer);
   currentData.cmdBuffer.bindIndexBuffer(m_testIndex.buffer,
                                         VK_INDEX_TYPE_UINT16);
+  currentData.cmdBuffer.bindDescriptorSetNoDynamic(
+      VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipelineLayout, 0, 1,
+      &m_uniformSets[swapchainImgIdx]);
 
   // currentData.cmdBuffer.draw(g_vertices.size(), 1, 0, 0);
   currentData.cmdBuffer.drawIndexed(g_indices.size(), 1, 0, 0, 0);
-
   currentData.cmdBuffer.endRenderPass();
   currentData.cmdBuffer.end();
 
@@ -390,8 +430,8 @@ void Renderer::createDefaultPipeline() {
       .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       .pNext                  = nullptr,
       .flags                  = 0,
-      .setLayoutCount         = 0,
-      .pSetLayouts            = nullptr,
+      .setLayoutCount         = 1,
+      .pSetLayouts            = &m_uniformLayout.setLayout,
       .pushConstantRangeCount = 0,
       .pPushConstantRanges    = nullptr,
   };
@@ -505,13 +545,73 @@ void Renderer::createMesh() {
 }
 
 void Renderer::destroyMesh() {
-  
-  VkDescriptorSetLayoutCreateInfo layout = {
-
-  };
   BufferAllocator& allocator = m_application->m_allocator;
   allocator.destroyBuffer(m_testMesh);
   allocator.destroyBuffer(m_testIndex);
 }
 
+void Renderer::createDescriptorSets() {
+  auto& allocator = m_application->m_allocator;
+
+  VkDescriptorPoolSize uniformPoolSize{
+      .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      .descriptorCount = m_swapchainObj->getImageCount(),
+  };
+  m_descPool.create(*m_application,
+                    VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 8, 1,
+                    &uniformPoolSize);
+
+  VkDescriptorSetLayoutBinding uniformBinding{
+      .binding            = 0,
+      .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      .descriptorCount    = 1,
+      .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
+      .pImmutableSamplers = nullptr,
+  };
+
+  m_uniformLayout.create(*m_application, 1, &uniformBinding);
+
+  std::vector<VkDescriptorSetLayout> layouts(m_swapchainObj->getImageCount(),
+                                             m_uniformLayout.setLayout);
+  m_uniformSets =
+      m_descPool.allocSets(*m_application, std::size(layouts), layouts.data());
+
+  VkBufferCreateInfo uniformBufferCI{
+      .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .pNext       = nullptr,
+      .flags       = 0,
+      .size        = sizeof(g_uniformData),
+      .usage       = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+  };
+  VmaAllocationCreateInfo uniformBufferAI{.usage = VMA_MEMORY_USAGE_CPU_TO_GPU};
+
+  m_uniformBuffer = allocator.createBuffer(&uniformBufferCI, &uniformBufferAI);
+
+  VkDescriptorBufferInfo uniformBufferInfo{
+      .buffer = m_uniformBuffer.buffer,
+      .offset = 0,
+      .range  = VK_WHOLE_SIZE,
+  };
+  for (auto& set : m_uniformSets) {
+    VkWriteDescriptorSet writeSet{
+        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .pNext           = nullptr,
+        .dstSet          = set,
+        .dstBinding      = uniformBinding.binding,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .pBufferInfo     = &uniformBufferInfo,
+    };
+    vkUpdateDescriptorSets(*m_application, 1, &writeSet, 0, nullptr);
+  }
+}
+void Renderer::destroyDescriptorSets() {
+  m_application->m_allocator.destroyBuffer(m_uniformBuffer);
+
+  m_uniformLayout.destroy(*m_application);
+  m_descPool.freeSets(*m_application, m_uniformSets);
+  m_descPool.destroy(*m_application);
+}
 } // namespace myvk::bs

@@ -43,6 +43,15 @@ struct CommandBuffer {
   void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, u32 regionCount,
                   const VkBufferCopy* pRegions);
 
+  void bindDescriptorSet(VkPipelineBindPoint bindPoint, VkPipelineLayout layout,
+                         u32 firstSet, u32 setCount,
+                         VkDescriptorSet* pDescriptorSets,
+                         u32 dynamicOffsetCount, u32* pDynamicOffsets);
+  void bindDescriptorSetNoDynamic(VkPipelineBindPoint bindPoint,
+                                  VkPipelineLayout layout, u32 firstSet,
+                                  u32              setCount,
+                                  VkDescriptorSet* pDescriptorSets);
+
   MYVK_CONVERT_OP(CommandBuffer, cmdBuffer);
   MYVK_ADDRESS_OP(CommandBuffer, cmdBuffer);
 };

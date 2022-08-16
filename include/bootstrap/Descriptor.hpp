@@ -6,15 +6,17 @@ namespace myvk::bs {
 struct DescriptorPool {
   VkDescriptorPool descPool;
 
-  VkResult create(VkDevice device, u32 maxSets, u32 poolSizeCount,
+  VkResult create(VkDevice device, VkDescriptorPoolCreateFlags flags,
+                  u32 maxSets, u32 poolSizeCount,
                   VkDescriptorPoolSize* pPoolSize);
   void     destroy(VkDevice device);
 
-  VkDescriptorSet allocSet(VkDevice device, VkDescriptorSetLayout setLayout);
-  void            freeSet(VkDevice device, VkDescriptorSet set);
+  [[nodiscard]] VkDescriptorSet allocSet(VkDevice              device,
+                                         VkDescriptorSetLayout setLayout);
+  void                          freeSet(VkDevice device, VkDescriptorSet set);
 
-  std::vector<VkDescriptorSet> allocSets(VkDevice device, u32 setCount,
-                                         VkDescriptorSetLayout* pSetLayout);
+  [[nodiscard]] std::vector<VkDescriptorSet>
+  allocSets(VkDevice device, u32 setCount, VkDescriptorSetLayout* pSetLayout);
   void freeSets(VkDevice device, std::vector<VkDescriptorSet>& sets);
 };
 

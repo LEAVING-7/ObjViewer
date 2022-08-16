@@ -102,4 +102,21 @@ void CommandBuffer::drawIndexed(u32 indexCount, u32 instanceCount,
                    vertexOffset, firstInstance);
 }
 
+void CommandBuffer::bindDescriptorSet(VkPipelineBindPoint bindPoint,
+                                      VkPipelineLayout layout, u32 firstSet,
+                                      u32              setCount,
+                                      VkDescriptorSet* pDescriptorSets,
+                                      u32              dynamicOffsetCount,
+                                      u32*             pDynamicOffsets) {
+  vkCmdBindDescriptorSets(cmdBuffer, bindPoint, layout, firstSet, setCount,
+                          pDescriptorSets, dynamicOffsetCount, pDynamicOffsets);
+}
+void CommandBuffer::bindDescriptorSetNoDynamic(VkPipelineBindPoint bindPoint,
+                                  VkPipelineLayout layout, u32 firstSet,
+                                  u32              setCount,
+                                  VkDescriptorSet* pDescriptorSets) {
+    return bindDescriptorSet(bindPoint, layout, firstSet, setCount,
+                             pDescriptorSets, 0, nullptr);
+  }
+
 } // namespace myvk::bs

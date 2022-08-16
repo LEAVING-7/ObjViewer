@@ -4,8 +4,11 @@
 
 #include <unordered_map>
 
+#include "DataType/Camera.hpp"
 #include "GUI/MainWindow.hpp"
+
 #include "bootstrap/BufferAllocator.hpp"
+#include "bootstrap/Descriptor.hpp"
 #include "bootstrap/FrameBuffer.hpp"
 #include "bootstrap/GraphicPipelineBuilder.hpp"
 #include "bootstrap/Shader.hpp"
@@ -16,8 +19,8 @@ namespace myvk::bs {
 class Application;
 class Device;
 
-struct GPUPushConstant {
-  glm::vec4 color;
+struct RendererState {
+  data::Camera camera;
 };
 
 class Renderer {
@@ -58,9 +61,12 @@ public:
   void createMesh();
   void destroyMesh();
 
-  void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevice device);
+  void createDescriptorSets();
+  void destroyDescriptorSets();
 
 public:
+  RendererState m_state;
+
   gui::MainWindow m_window;
 
   VkSurfaceKHR m_surface;
@@ -82,8 +88,13 @@ public:
   VkQueue m_transferQueue;
   u32     m_transferQueueIndex;
 
+  DescriptorPool               m_descPool;
+  DescriptorSetLayout          m_uniformLayout;
+  std::vector<VkDescriptorSet> m_uniformSets;
+
   AllocatedBuffer m_testMesh;
   AllocatedBuffer m_testIndex;
+  AllocatedBuffer m_uniformBuffer;
   // private:
   Application*               m_application;
   std::unique_ptr<Swapchain> m_swapchainObj;

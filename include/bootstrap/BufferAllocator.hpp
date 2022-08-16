@@ -30,15 +30,16 @@ public:
   void create(VkPhysicalDevice gpu, VkDevice device, VkInstance instance);
   void destroy();
 
-  AllocatedImage createImage(VkImageCreateInfo*       pInfo,
-                             VmaAllocationCreateInfo* pAllocCreateInfo,
-                             VmaAllocationInfo*       pAllocInfo = nullptr);
-  void           destroyImage(AllocatedImage image);
-
-  AllocatedBuffer createBuffer(VkBufferCreateInfo*      pInfo,
-                               VmaAllocationCreateInfo* pAllocCreateInfo,
-                               VmaAllocationInfo*       pAllocInfo = nullptr);
-  void            destroyBuffer(AllocatedBuffer buffer);
+  [[nodiscard]] AllocatedImage
+       createImage(VkImageCreateInfo*       pInfo,
+                   VmaAllocationCreateInfo* pAllocCreateInfo,
+                   VmaAllocationInfo*       pAllocInfo = nullptr);
+  void destroyImage(AllocatedImage image);
+  [[nodiscard]] AllocatedBuffer
+       createBuffer(VkBufferCreateInfo*      pInfo,
+                    VmaAllocationCreateInfo* pAllocCreateInfo,
+                    VmaAllocationInfo*       pAllocInfo = nullptr);
+  void destroyBuffer(AllocatedBuffer buffer);
 
   VkResult mmap(AllocatedBuffer& buffer, void** ppData) {
     return vmaMapMemory(m_allocator, buffer.allocation, ppData);

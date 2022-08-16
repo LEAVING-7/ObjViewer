@@ -1,12 +1,12 @@
 #include "bootstrap/Descriptor.hpp"
 
 namespace myvk::bs {
-VkResult DescriptorPool::create(VkDevice device, u32 maxSets, u32 poolSizeCount,
+VkResult DescriptorPool::create(VkDevice device,VkDescriptorPoolCreateFlags flags ,u32 maxSets, u32 poolSizeCount,
                                 VkDescriptorPoolSize* pPoolSize) {
   VkDescriptorPoolCreateInfo CI{
       .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
       .pNext         = nullptr,
-      .flags         = 0,
+      .flags         = flags,
       .maxSets       = maxSets,
       .poolSizeCount = poolSizeCount,
       .pPoolSizes    = pPoolSize,
@@ -39,7 +39,7 @@ void DescriptorPool::freeSets(VkDevice                      device,
                               std::vector<VkDescriptorSet>& sets) {
   vkFreeDescriptorSets(device, descPool, sets.size(), sets.data());
 }
-VkDescriptorSet DescriptorPool::allocSet(VkDevice              device,
+VkDescriptorSet  DescriptorPool::allocSet(VkDevice              device,
                                          VkDescriptorSetLayout setLayout) {
   VkDescriptorSetAllocateInfo AI{
       .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,

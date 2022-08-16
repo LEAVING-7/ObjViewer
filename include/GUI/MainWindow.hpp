@@ -21,9 +21,13 @@ public:
   std::pair<int, int> getWindowSize();
   std::pair<int, int> getFrameBufferSize();
 
-  static void  waitEvents();
-  static void  setUserPointer(GLFWwindow* m_window, void* pointer);
-  static void* getUserPointer(GLFWwindow* m_window);
+  static void waitEvents();
+
+  static void setUserPointer(GLFWwindow* m_window, void* pointer);
+  
+  template <typename T> static T getUserPointer(GLFWwindow* m_window) {
+    return reinterpret_cast<T>(glfwGetWindowUserPointer(m_window));
+  }
 
   MainWindow& setErrorCallback(GLFWerrorfun callback =
                                    [](int error_code, const char* description) {

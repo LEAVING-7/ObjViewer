@@ -11,8 +11,11 @@ public:
   std::vector<VkImage>     m_images;
   std::vector<VkImageView> m_imageViews;
 
-  void create(vkb::Device* device, VkSurfaceKHR surface ,u32 width, u32 height);
+  void create(vkb::Device* device, VkSurfaceKHR surface, u32 width, u32 height);
   void destroy();
+  u32  getImageCount() {
+     return m_swapchain.image_count;
+  }
 
   MYVK_CONVERT_OP(SwapchainKHR, m_swapchain);
 };

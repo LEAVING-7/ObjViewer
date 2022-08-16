@@ -15,12 +15,11 @@ public:
     CommandPool   stagingCmdPool;
     CommandBuffer cmdBuffer;
 
-
     void create(VkDevice device, u32 graphicIndex, u32 transferIndex);
     void destroy(VkDevice device);
   };
 
-  static constexpr u32 DATA_COUNT = 1;
+  static constexpr u32 DATA_COUNT = 3;
 
   u64       frameCount{0};
   FrameData frameData[DATA_COUNT];

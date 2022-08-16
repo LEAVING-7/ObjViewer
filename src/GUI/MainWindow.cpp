@@ -44,10 +44,6 @@ void MainWindow::setUserPointer(GLFWwindow* m_window, void* pointer) {
   glfwSetWindowUserPointer(m_window, pointer);
 }
 
-void* MainWindow::getUserPointer(GLFWwindow* m_window) {
-  return glfwGetWindowUserPointer(m_window);
-}
-
 VkSurfaceKHR MainWindow::createSurface(VkInstance instance) {
   VkSurfaceKHR ret;
   glfwCreateWindowSurface(instance, m_window, nullptr, &ret);
