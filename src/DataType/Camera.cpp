@@ -18,17 +18,17 @@ void Camera::move(MoveDirection dir, float time) {
     m_position += m_right * velocity;
     break;
   case MoveDirection::eUp:
-    m_position += m_up * velocity;
+    m_position -= m_up * velocity;
     break;
   case MoveDirection::eDown:
-    m_position -= m_up * velocity;
+    m_position += m_up * velocity;
     break;
   }
 }
 void Camera::processMouseMovement(float xOffset, float yOffset) {
   xOffset *= m_mouseSensitivity;
   yOffset *= m_mouseSensitivity;
-  m_yam += xOffset;
+  m_yam -= xOffset;
   m_pitch -= yOffset;
 
   if (m_pitch > 89.9f)
@@ -56,5 +56,7 @@ void Camera::updateCameraVectors() {
   m_right = glm::normalize(glm::cross(front, m_worldUp));
   m_up    = glm::normalize(glm::cross(m_right, front));
 }
+
+
 
 } // namespace myvk::data

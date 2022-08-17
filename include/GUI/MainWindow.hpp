@@ -2,6 +2,7 @@
 #include "common.hpp"
 #include "pch.hpp"
 
+#include "DataType/Camera.hpp"
 namespace myvk::gui {
 class MainWindow {
 public:
@@ -44,5 +45,9 @@ public:
   MainWindow& setCursorPosCallback(GLFWcursorposfun callback);
   MainWindow& setFramebufferSizeCallback(GLFWframebuffersizefun callback);
   MainWindow& setInputMode(int mode, int input);
+  
+  
+  
+  void updateCamera(data::Camera &cam);
 };
 } // namespace myvk::gui

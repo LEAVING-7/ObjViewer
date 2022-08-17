@@ -19,18 +19,18 @@ struct Camera {
     eDown,
   };
 
-  glm::vec3 m_position{0.f, 0.f, 0.f};
+  glm::vec3 m_position{0.f, 0.f, 2.f};
   glm::vec3 m_front{0.f, 0.f, 1.f};
-  glm::vec3 m_up{-1, 0, 0};
-  glm::vec3 m_right{0, -1, 0};
-  glm::vec3 m_worldUp{0, 1, 0.f};
+  glm::vec3 m_up{0, 1, 0};
+  glm::vec3 m_right{1, 0, 0};
+  glm::vec3 m_worldUp{0, -1, 0};
 
   float m_yam{0.f}, m_pitch{0.f};
 
   float m_movementSpeed{2.5f}, m_mouseSensitivity{.1f}, m_zoom{45.f};
 
   Camera() {
-    // updateCameraVectors();
+    updateCameraVectors();
   };
 
   Camera(glm::vec3 position, glm::vec3 front, glm::vec3 worldUp)

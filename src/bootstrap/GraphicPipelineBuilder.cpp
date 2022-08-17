@@ -10,13 +10,6 @@ GraphicPipelineBuilder::noColorBlend(VkColorComponentFlags colorWriteMask) {
   return *this;
 }
 
-
-GraphicPipelineBuilder& GraphicPipelineBuilder::setVertexInput(
-    data::VertexInputDescription&& vertDesc) {
-  return setVertexInput(vertDesc.bindings.size(), vertDesc.bindings.data(),
-                        vertDesc.attributes.size(), vertDesc.attributes.data());
-}
-
 GraphicPipelineBuilder&
 GraphicPipelineBuilder::setInputAssembly(VkPrimitiveTopology topology,
                                          VkBool32 primitiveRestartEnable) {
@@ -29,6 +22,7 @@ GraphicPipelineBuilder::setInputAssembly(VkPrimitiveTopology topology,
   };
   return *this;
 }
+
 GraphicPipelineBuilder& GraphicPipelineBuilder::setRasterization(
     VkBool32 depthClampEnable, VkBool32 rasterizerDiscardEnable,
     VkPolygonMode polygonMode, VkCullModeFlags cullMode, VkFrontFace frontFace,

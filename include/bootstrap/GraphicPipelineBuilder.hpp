@@ -22,6 +22,7 @@ struct GraphicPipelineBuilder {
   VkPipelineMultisampleStateCreateInfo  multisampling;
   VkPipelineDepthStencilStateCreateInfo depthStencil;
 
+public:
   VkPipeline build(VkDevice device, VkRenderPass pass, VkPipelineLayout layout,
                    bool            enableTessellation = false,
                    VkPipelineCache cache              = VK_NULL_HANDLE);
@@ -31,6 +32,7 @@ struct GraphicPipelineBuilder {
                  VkPipelineCache cache  = VK_NULL_HANDLE,
                  size_t initialDataSize = 0, void* pInitialData = nullptr);
 
+public:
   GraphicPipelineBuilder&
   setShader(std::vector<VkPipelineShaderStageCreateInfo>&& shaders) {
     this->shaders = std::move(shaders);
@@ -46,19 +48,28 @@ struct GraphicPipelineBuilder {
   GraphicPipelineBuilder& noColorBlend(VkColorComponentFlags colorWriteMask);
 
   GraphicPipelineBuilder&
-  setDynamic(uint32_t              dynamicStateCount = 0,
-             const VkDynamicState* pDynamicStates    = nullptr);
-  GraphicPipelineBuilder&
-  setDynamic(std::vector<VkDynamicState>&& dynamicState);
+  setDynamic(std::vector<VkDynamicState>& dynamicStates) {
+    this->dynamicStates = dynamicStates;
+    return *this;
+  }
 
   GraphicPipelineBuilder&
-  setVertexInput(data::VertexInputDescription&& vertDesc);
+  setDynamic(std::vector<VkDynamicState>&& dynamicState) {
+    this->dynamicStates = std::move(dynamicState);
+    return *this;
+  }
 
-  GraphicPipelineBuilder& setVertexInput(
-      u32                                      vertexBindingDescriptionCount,
-      const VkVertexInputBindingDescription*   pVertexBindingDescriptions,
-      u32                                      vertexAttributeDescriptionCount,
-      const VkVertexInputAttributeDescription* pVertexAttributeDescriptions);
+  GraphicPipelineBuilder&
+  setVertexInput(data::VertexInputDescription&& vertDesc) {
+    this->vertexInput = std::move(vertDesc);
+    return *this;
+  }
+
+  GraphicPipelineBuilder&
+  setVertexInput(data::VertexInputDescription& vertDesc) {
+    this->vertexInput = vertDesc;
+    return *this;
+  }
 
   GraphicPipelineBuilder& setInputAssembly(VkPrimitiveTopology topology,
                                            VkBool32 primitiveRestartEnable);
@@ -116,6 +127,11 @@ struct GraphicPipelineBuilder {
                                                      size_t scissorCount) {
     this->viewports.resize(viewportCount);
     this->scissors.resize(scissorCount);
+    return *this;
+  }
+
+  GraphicPipelineBuilder& setLineWidth(u32 lineWidth) {
+    this->rasterizer.lineWidth = lineWidth;
     return *this;
   }
 };

@@ -81,4 +81,24 @@ MainWindow& MainWindow::setInputMode(int mode, int value) {
   return *this;
 }
 
+void MainWindow::updateCamera(data::Camera& camera) {
+  if (getKey(GLFW_KEY_W) == GLFW_PRESS) {
+    camera.move(data::Camera::MoveDirection::eForward);
+  }
+  if (getKey(GLFW_KEY_A) == GLFW_PRESS) {
+    camera.move(data::Camera::MoveDirection::eLeft);
+  }
+  if (getKey(GLFW_KEY_S) == GLFW_PRESS) {
+    camera.move(data::Camera::MoveDirection::eBackward);
+  }
+  if (getKey(GLFW_KEY_D) == GLFW_PRESS) {
+    camera.move(data::Camera::MoveDirection::eRight);
+  }
+  if (getKey(GLFW_KEY_Q) == GLFW_PRESS) {
+    camera.move(data::Camera::MoveDirection::eUp);
+  }
+  if (getKey(GLFW_KEY_E) == GLFW_PRESS) {
+    camera.move(data::Camera::MoveDirection::eDown);
+  }
+}
 } // namespace myvk::gui

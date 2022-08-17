@@ -11,7 +11,7 @@ float g_frameEnd   = 0;
 const std::vector<data::Vertex> g_vertices = {
     {{-0.5f, -0.5f, 0.f}, {1.0f, 0.0f, 0.0f}},
     {{0.5f, -0.5f, 0.f}, {0.0f, 1.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.f}, {0.0f, 0.0f, 1.0f}},
+    {{0.5f, 0.5f, 1.f}, {0.0f, 0.0f, 1.0f}},
     {{-0.5f, 0.5f, 0.f}, {1.0f, 1.0f, 1.0f}},
 };
 
@@ -21,13 +21,13 @@ const std::vector<u16> g_indices = {
 
 std::vector<data::Vertex> g_axis = {
     {{0, 0, 0}, {0, 0, 0}}, // original
-    {{1, 0, 0}, {1, 0, 0}}, // x
-    {{0, 1, 0}, {0, 1, 0}}, // y
-    {{0, 0, 1}, {0, 0, 1}}, // z
+    {{3, 0, 0}, {1, 0, 0}}, // x
+    {{0, 3, 0}, {0, 1, 0}}, // y
+    {{0, 0, 3}, {0, 0, 1}}, // z
 };
 
 const std::vector<u16> g_axisIndices = {
-    0, 1, 0, 2, 0, 3,
+    1, 0 , 2, 0, 3, 0,
 };
 
 struct UniformBufferObject {
@@ -44,11 +44,11 @@ void windowCursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
   } else {
     renderer->m_window.setInputMode(GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
   }
-  float windowWidth  = renderer->m_window.m_width / 2;
-  float windowHeight = renderer->m_window.m_height / 2;
+  float windowWidth  = (float)renderer->m_window.m_width / 2;
+  float windowHeight = (float)renderer->m_window.m_height / 2;
   xpos -= windowWidth;
   ypos -= windowHeight;
-  renderer->m_state.camera.processMouseMovement(xpos, ypos);
+  renderer->m_state.camera.processMouseMovement((float)xpos, (float)ypos);
   glfwSetCursorPos(window, windowWidth, windowHeight);
 }
 
@@ -61,7 +61,7 @@ void windowFramebufferResizeCallback(GLFWwindow* window, int width,
 void Renderer::create(Application* app) {
   m_application = app;
   getGraphicQueueAndQueueIndex();
-  // createDepthImages();
+  createDepthImages();
   createSwapchain();
   createRenderPass(true);
   createShaders();
@@ -83,11 +83,12 @@ void Renderer::destroy() {
   destroyShaders();
   destroyRenderPass();
   destroySwapchain();
-  // destroyDepthImages();
+  destroyDepthImages();
 }
 
 void Renderer::recreateSwapchain() {
   vkDeviceWaitIdle(*m_application);
+
   auto [width, height] = m_window.getFrameBufferSize();
   while (width == 0 || height == 0) {
     glfwGetFramebufferSize(m_window.m_window, &width, &height);
@@ -99,11 +100,11 @@ void Renderer::recreateSwapchain() {
   destroyShaders();
   destroyRenderPass();
   destroySwapchain();
-  // destroyDepthImages();
+  destroyDepthImages();
 
   m_window.updateExtent();
 
-  // createDepthImages();
+  createDepthImages();
   createSwapchain();
   createRenderPass(true);
   createShaders();
@@ -138,24 +139,7 @@ void Renderer::render() {
     return;
   }
 
-  if (m_window.getKey(GLFW_KEY_W) == GLFW_PRESS) {
-    m_state.camera.move(data::Camera::MoveDirection::eForward);
-  }
-  if (m_window.getKey(GLFW_KEY_A) == GLFW_PRESS) {
-    m_state.camera.move(data::Camera::MoveDirection::eLeft);
-  }
-  if (m_window.getKey(GLFW_KEY_S) == GLFW_PRESS) {
-    m_state.camera.move(data::Camera::MoveDirection::eBackward);
-  }
-  if (m_window.getKey(GLFW_KEY_D) == GLFW_PRESS) {
-    m_state.camera.move(data::Camera::MoveDirection::eRight);
-  }
-  if (m_window.getKey(GLFW_KEY_Q) == GLFW_PRESS) {
-    m_state.camera.move(data::Camera::MoveDirection::eUp);
-  }
-  if (m_window.getKey(GLFW_KEY_E) == GLFW_PRESS) {
-    m_state.camera.move(data::Camera::MoveDirection::eDown);
-  }
+  m_window.updateCamera(m_state.camera);
 
   currentData.renderFence.reset(*m_application);
   VkClearValue colorClear{
@@ -163,7 +147,7 @@ void Renderer::render() {
   };
 
   VkClearValue depthClear{
-      .depthStencil = {.depth = 1.f},
+      .depthStencil = {1.f, 0},
   };
 
   VkClearValue clearValue[2] = {colorClear, depthClear};
@@ -189,25 +173,18 @@ void Renderer::render() {
                                         VK_SUBPASS_CONTENTS_INLINE);
   currentData.cmdBuffer.bindPipelineGraphic(m_defaultPipeline);
 
-  float time = glfwGetTime();
-
-  g_uniformData.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
-                                    glm::vec3(0.0f, 0.0f, 1.0f));
+  float time          = glfwGetTime();
+  g_uniformData.model = glm::mat4{1};
 
   g_uniformData.view = m_state.camera.viewMat();
   g_uniformData.proj = glm::perspective(
-      glm::radians(45.f), m_window.m_width / (float)m_window.m_height, 0.1f,
-      100.0f);
+      45.f, m_window.m_width / (float)m_window.m_height, 0.1f, 100.0f);
 
-  g_uniformData.proj[1][1] *= -1;
   m_uniformBuffer.transferMemory(m_application->m_allocator, &g_uniformData,
                                  sizeof(g_uniformData));
 
-  g_axis[0].pos = m_state.camera.m_position + m_state.camera.m_front;
-  g_axis[1].pos += g_axis[0].pos;
-  g_axis[2].pos += g_axis[0].pos;
-  g_axis[3].pos += g_axis[0].pos;
-
+  m_axisBuffer.transferMemory(m_application->m_allocator, (void*)g_axis.data(),
+                              m_axisBuffer.size);
   currentData.cmdBuffer.bindVertexBuffer(&m_testMesh.buffer);
   currentData.cmdBuffer.bindIndexBuffer(m_testIndex.buffer,
                                         VK_INDEX_TYPE_UINT16);
@@ -216,13 +193,13 @@ void Renderer::render() {
       VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipelineLayout, 0, 1,
       &m_uniformSets[swapchainImgIdx]);
 
-  currentData.cmdBuffer.drawIndexed(g_indices.size(), 1, 0, 0, 0);
+  currentData.cmdBuffer.drawIndexed((u32)g_indices.size(), 1, 0, 0, 0);
 
   currentData.cmdBuffer.bindPipelineGraphic(m_axisPipeline);
   currentData.cmdBuffer.bindVertexBuffer(&m_axisBuffer.buffer);
   currentData.cmdBuffer.bindIndexBuffer(m_axisIndex.buffer,
                                         VK_INDEX_TYPE_UINT16);
-  currentData.cmdBuffer.drawIndexed(g_axisIndices.size(), 1, 0, 0, 0);
+  currentData.cmdBuffer.drawIndexed((u32)g_axisIndices.size(), 1, 0, 0, 0);
   currentData.cmdBuffer.endRenderPass();
   currentData.cmdBuffer.end();
 
@@ -330,7 +307,7 @@ void Renderer::createDepthImages() {
               .layerCount     = 1,
           },
   };
-  vkCreateImageView(m_application->getVkDevice(), &depthImageViewCI, nullptr,
+  vkCreateImageView(*m_application, &depthImageViewCI, nullptr,
                     &m_depthImageView);
 }
 void Renderer::destroyDepthImages() {
@@ -355,7 +332,7 @@ void Renderer::createRenderPass(bool includeDepth, bool clear) {
       .samples        = VK_SAMPLE_COUNT_1_BIT,
       .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
       .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-      .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR,
+      .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
       .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
@@ -375,8 +352,9 @@ void Renderer::createRenderPass(bool includeDepth, bool clear) {
       .pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
       .colorAttachmentCount    = 1,
       .pColorAttachments       = &colorAttachmentRef,
-      .pDepthStencilAttachment = nullptr,
+      .pDepthStencilAttachment = &depthAttachmentRef,
   };
+
   VkSubpassDependency colorDependency{
       .srcSubpass    = VK_SUBPASS_EXTERNAL,
       .dstSubpass    = 0,
@@ -399,7 +377,7 @@ void Renderer::createRenderPass(bool includeDepth, bool clear) {
   };
 
   VkSubpassDependency     dependencies[2]{colorDependency, depthDependency};
-  VkAttachmentDescription attachments[]{colorAttachment};
+  VkAttachmentDescription attachments[]{colorAttachment, depthAttachment};
 
   VkRenderPassCreateInfo renderPassCI{
       .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -407,8 +385,8 @@ void Renderer::createRenderPass(bool includeDepth, bool clear) {
       .pAttachments    = attachments,
       .subpassCount    = 1,
       .pSubpasses      = &subpass,
-      .dependencyCount = 1,
-      .pDependencies   = &colorDependency,
+      .dependencyCount = std::size(dependencies),
+      .pDependencies   = dependencies,
   };
 
   auto result =
@@ -423,7 +401,7 @@ void Renderer::destroyRenderPass() {
 void Renderer::createFrameBuffer(bool includeDepth) {
   m_frameBuffer.create(*m_application, m_swapchainObj->m_swapchain,
                        m_renderPass, {m_window.m_width, m_window.m_height},
-                       m_swapchainObj->m_imageViews, std::nullopt,
+                       m_swapchainObj->m_imageViews, m_depthImageView,
                        m_graphicQueueIndex, m_transferQueueIndex);
 }
 
@@ -484,6 +462,7 @@ void Renderer::createDefaultPipeline() {
   m_defaultPipelineBuilder.reset(new GraphicPipelineBuilder{});
   VkDynamicState dynamicState[] = {VK_DYNAMIC_STATE_VIEWPORT,
                                    VK_DYNAMIC_STATE_SCISSOR};
+
   auto [defaultPipeline, defaultPipelineCache] =
       m_defaultPipelineBuilder
           ->setShader({m_shaders["mainVert"].m_shaderInfo,
@@ -493,7 +472,7 @@ void Renderer::createDefaultPipeline() {
           .setRasterization(VK_FALSE, VK_FALSE, VK_POLYGON_MODE_FILL,
                             VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE,
                             VK_FALSE, 0, 0, 0, 1)
-          .setDynamic()
+          .setDynamic({})
           .noColorBlend(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                         VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT)
           .setViewPortAndScissor(
@@ -509,8 +488,7 @@ void Renderer::createDefaultPipeline() {
                   .offset{0, 0},
                   .extent = {m_window.m_width, m_window.m_height},
               }})
-          .setDeepNoStencil(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL, VK_FALSE,
-                            0, 1)
+          .setDeepNoStencil(VK_TRUE, VK_COMPARE_OP_LESS, VK_FALSE, 0, 1)
           .setMultisample(VK_SAMPLE_COUNT_1_BIT, VK_FALSE, 1.f, nullptr,
                           VK_FALSE, VK_FALSE)
           .buildWithCache(*m_application, m_renderPass,
@@ -522,8 +500,7 @@ void Renderer::createDefaultPipeline() {
   GraphicPipelineBuilder axisBuilder = *m_defaultPipelineBuilder;
 
   m_axisPipeline =
-      axisBuilder
-          .setInputAssembly(VK_PRIMITIVE_TOPOLOGY_LINE_LIST, VK_FALSE)
+      axisBuilder.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_LINE_LIST, VK_FALSE)
           .build(*m_application, m_renderPass, m_defaultPipelineLayout,
                  m_defaultPipelineCache);
 }
@@ -569,6 +546,7 @@ void Renderer::createMesh() {
       allocator.createBuffer(&vertexBufferCI, &vertexAI);
   stagingBuffer.transferMemory(allocator, (void*)(g_vertices.data()),
                                stagingBuffer.size);
+
   VkBufferCreateInfo dstBufferCI{
       .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
       .pNext = NULL,
@@ -622,8 +600,8 @@ void Renderer::createMesh() {
       .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
   };
   m_axisIndex = allocator.createBuffer(&axisIndexBufferCI, &vertexAI);
-  m_axisBuffer.transferMemory(allocator, (void*)g_axisIndices.data(),
-                              m_axisBuffer.size);
+  m_axisIndex.transferMemory(allocator, (void*)g_axisIndices.data(),
+                             m_axisIndex.size);
 }
 
 void Renderer::destroyMesh() {
@@ -687,6 +665,8 @@ void Renderer::createDescriptorSets() {
     vkUpdateDescriptorSets(*m_application, 1, &writeSet, 0, nullptr);
   }
 }
+
+
 void Renderer::destroyDescriptorSets() {
   m_application->m_allocator.destroyBuffer(m_uniformBuffer);
 
