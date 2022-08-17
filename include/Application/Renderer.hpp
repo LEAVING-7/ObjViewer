@@ -84,8 +84,9 @@ public:
   VkPipelineCache                         m_defaultPipelineCache;
   VkPipelineLayout                        m_defaultPipelineLayout;
 
-  VkPipeline m_axisPipeline;
-  
+  VkPipeline      m_axisPipeline;
+  AllocatedBuffer m_axisBuffer;
+  AllocatedBuffer m_axisIndex;
 
   VkQueue m_graphicQueue;
   u32     m_graphicQueueIndex;

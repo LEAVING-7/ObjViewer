@@ -5,55 +5,26 @@
 #include "DataType/Vertex.hpp"
 namespace myvk::bs {
 struct GraphicPipelineBuilder {
-  template <typename T> struct Init {
-    bool isInit{false};
-    T    value;
 
-    Init()            = default;
-    Init(const Init&) = delete;
-    Init(Init&&)      = delete;
+  std::vector<VkPipelineShaderStageCreateInfo> shaders;
+  std::vector<VkDynamicState>                  dynamicStates;
 
-    T& operator=(T const& another) {
-      isInit = true;
-      value  = another;
-      return value;
-    }
-    T& operator==(T&& another) {
-      isInit = true;
-      value  = std::forward<T&&>(another);
-      return value;
-    }
-    T* operator&() {
-      required();
-      return &value;
-    }
-    operator bool() {
-      return isInit;
-    }
+  data::VertexInputDescription           vertexInput;
+  VkPipelineInputAssemblyStateCreateInfo inputAssembly;
 
-    void required() {
-      assert(isInit);
-    }
-  };
+  std::vector<VkViewport> viewports;
+  std::vector<VkRect2D>   scissors;
 
-  Init<std::vector<VkPipelineShaderStageCreateInfo>> shaders;
+  VkPipelineRasterizationStateCreateInfo rasterizer;
+  VkPipelineColorBlendAttachmentState    colorBlendAttachment;
 
-  Init<VkPipelineDynamicStateCreateInfo>       dynamic;
-  Init<VkPipelineVertexInputStateCreateInfo>   vertexInputInfo;
-  Init<VkPipelineInputAssemblyStateCreateInfo> inputAssembly;
-
-  Init<std::vector<VkViewport>> viewports;
-  Init<std::vector<VkRect2D>>   scissors;
-
-  Init<VkPipelineRasterizationStateCreateInfo> rasterizer;
-  Init<VkPipelineColorBlendAttachmentState>    colorBlendAttachment;
-
-  Init<VkPipelineTessellationStateCreateInfo> tessellation;
-  Init<VkPipelineMultisampleStateCreateInfo>  multisampling;
-  Init<VkPipelineDepthStencilStateCreateInfo> depthStencil;
+  VkPipelineTessellationStateCreateInfo tessellation;
+  VkPipelineMultisampleStateCreateInfo  multisampling;
+  VkPipelineDepthStencilStateCreateInfo depthStencil;
 
   VkPipeline build(VkDevice device, VkRenderPass pass, VkPipelineLayout layout,
-                   VkPipelineCache cache = VK_NULL_HANDLE);
+                   bool            enableTessellation = false,
+                   VkPipelineCache cache              = VK_NULL_HANDLE);
 
   std::pair<VkPipeline, VkPipelineCache>
   buildWithCache(VkDevice device, VkRenderPass pass, VkPipelineLayout layout,
@@ -61,17 +32,28 @@ struct GraphicPipelineBuilder {
                  size_t initialDataSize = 0, void* pInitialData = nullptr);
 
   GraphicPipelineBuilder&
-  setShader(std::vector<VkPipelineShaderStageCreateInfo>&& shaders);
+  setShader(std::vector<VkPipelineShaderStageCreateInfo>&& shaders) {
+    this->shaders = std::move(shaders);
+    return *this;
+  }
+
+  GraphicPipelineBuilder&
+  setShader(std::vector<VkPipelineShaderStageCreateInfo>& shaders) {
+    this->shaders = shaders;
+    return *this;
+  }
 
   GraphicPipelineBuilder& noColorBlend(VkColorComponentFlags colorWriteMask);
 
-  // TODO 重构成vector
   GraphicPipelineBuilder&
   setDynamic(uint32_t              dynamicStateCount = 0,
              const VkDynamicState* pDynamicStates    = nullptr);
+  GraphicPipelineBuilder&
+  setDynamic(std::vector<VkDynamicState>&& dynamicState);
 
   GraphicPipelineBuilder&
   setVertexInput(data::VertexInputDescription&& vertDesc);
+
   GraphicPipelineBuilder& setVertexInput(
       u32                                      vertexBindingDescriptionCount,
       const VkVertexInputBindingDescription*   pVertexBindingDescriptions,
@@ -103,11 +85,6 @@ struct GraphicPipelineBuilder {
   GraphicPipelineBuilder& setTessellation(uint32_t patchControlPoints);
 
   GraphicPipelineBuilder&
-  setLayout(uint32_t setLayoutCount, const VkDescriptorSetLayout* pSetLayouts,
-            uint32_t                   pushConstantRangeCount,
-            const VkPushConstantRange* pPushConstantRanges);
-
-  GraphicPipelineBuilder&
   setDepthStencil(VkBool32 depthTestEnable, VkBool32 depthWriteEnable,
                   VkCompareOp depthCompareOp, VkBool32 depthBoundsTestEnable,
                   VkBool32 stencilTestEnable, VkStencilOpState front,
@@ -118,11 +95,29 @@ struct GraphicPipelineBuilder {
                                            VkBool32    depthBoundsTestEnable,
                                            float       minDepthBounds,
                                            float       maxDepthBounds);
+
+  GraphicPipelineBuilder&
+  setViewPortAndScissor(std::vector<VkViewport>& viewports,
+                        std::vector<VkRect2D>&   scissors) {
+    this->viewports = viewports;
+    this->scissors  = scissors;
+    return *this;
+  }
+
   GraphicPipelineBuilder&
   setViewPortAndScissor(std::vector<VkViewport>&& viewports,
-                        std::vector<VkRect2D>&&   scissors);
+                        std::vector<VkRect2D>&&   scissors) {
+    this->viewports = std::move(viewports);
+    this->scissors  = std::move(scissors);
+    return *this;
+  }
+
   GraphicPipelineBuilder& setViewPortAndScissorCount(size_t viewportCount,
-                                                     size_t scissorCount);
+                                                     size_t scissorCount) {
+    this->viewports.resize(viewportCount);
+    this->scissors.resize(scissorCount);
+    return *this;
+  }
 };
 
 } // namespace myvk::bs

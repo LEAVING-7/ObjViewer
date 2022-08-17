@@ -19,7 +19,7 @@ const std::vector<u16> g_indices = {
     0, 1, 2, 2, 3, 0,
 };
 
-const std::vector<data::Vertex> g_axis = {
+std::vector<data::Vertex> g_axis = {
     {{0, 0, 0}, {0, 0, 0}}, // original
     {{1, 0, 0}, {1, 0, 0}}, // x
     {{0, 1, 0}, {0, 1, 0}}, // y
@@ -200,19 +200,29 @@ void Renderer::render() {
       100.0f);
 
   g_uniformData.proj[1][1] *= -1;
-
   m_uniformBuffer.transferMemory(m_application->m_allocator, &g_uniformData,
                                  sizeof(g_uniformData));
+
+  g_axis[0].pos = m_state.camera.m_position + m_state.camera.m_front;
+  g_axis[1].pos += g_axis[0].pos;
+  g_axis[2].pos += g_axis[0].pos;
+  g_axis[3].pos += g_axis[0].pos;
 
   currentData.cmdBuffer.bindVertexBuffer(&m_testMesh.buffer);
   currentData.cmdBuffer.bindIndexBuffer(m_testIndex.buffer,
                                         VK_INDEX_TYPE_UINT16);
+
   currentData.cmdBuffer.bindDescriptorSetNoDynamic(
       VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipelineLayout, 0, 1,
       &m_uniformSets[swapchainImgIdx]);
 
-  // currentData.cmdBuffer.draw(g_vertices.size(), 1, 0, 0);
   currentData.cmdBuffer.drawIndexed(g_indices.size(), 1, 0, 0, 0);
+
+  currentData.cmdBuffer.bindPipelineGraphic(m_axisPipeline);
+  currentData.cmdBuffer.bindVertexBuffer(&m_axisBuffer.buffer);
+  currentData.cmdBuffer.bindIndexBuffer(m_axisIndex.buffer,
+                                        VK_INDEX_TYPE_UINT16);
+  currentData.cmdBuffer.drawIndexed(g_axisIndices.size(), 1, 0, 0, 0);
   currentData.cmdBuffer.endRenderPass();
   currentData.cmdBuffer.end();
 
@@ -475,9 +485,9 @@ void Renderer::createDefaultPipeline() {
   VkDynamicState dynamicState[] = {VK_DYNAMIC_STATE_VIEWPORT,
                                    VK_DYNAMIC_STATE_SCISSOR};
   auto [defaultPipeline, defaultPipelineCache] =
-      (*m_defaultPipelineBuilder)
-          .setShader({m_shaders["mainVert"].m_shaderInfo,
-                      m_shaders["mainFrag"].m_shaderInfo})
+      m_defaultPipelineBuilder
+          ->setShader({m_shaders["mainVert"].m_shaderInfo,
+                       m_shaders["mainFrag"].m_shaderInfo})
           .setVertexInput(data::Vertex::GetDescription())
           .setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
           .setRasterization(VK_FALSE, VK_FALSE, VK_POLYGON_MODE_FILL,
@@ -505,14 +515,21 @@ void Renderer::createDefaultPipeline() {
                           VK_FALSE, VK_FALSE)
           .buildWithCache(*m_application, m_renderPass,
                           m_defaultPipelineLayout);
+
   m_defaultPipeline      = defaultPipeline;
   m_defaultPipelineCache = defaultPipelineCache;
 
+  GraphicPipelineBuilder axisBuilder = *m_defaultPipelineBuilder;
 
-  
+  m_axisPipeline =
+      axisBuilder
+          .setInputAssembly(VK_PRIMITIVE_TOPOLOGY_LINE_LIST, VK_FALSE)
+          .build(*m_application, m_renderPass, m_defaultPipelineLayout,
+                 m_defaultPipelineCache);
 }
 
 void Renderer::destroyDefaultPipeline() {
+  vkDestroyPipeline(*m_application, m_axisPipeline, nullptr);
   vkDestroyPipelineLayout(*m_application, m_defaultPipelineLayout, nullptr);
   vkDestroyPipelineCache(*m_application, m_defaultPipelineCache, nullptr);
   vkDestroyPipeline(*m_application, m_defaultPipeline, nullptr);
@@ -547,7 +564,8 @@ void Renderer::createMesh() {
   };
 
   BufferAllocator& allocator = m_application->m_allocator;
-  AllocatedBuffer  stagingBuffer =
+
+  AllocatedBuffer stagingBuffer =
       allocator.createBuffer(&vertexBufferCI, &vertexAI);
   stagingBuffer.transferMemory(allocator, (void*)(g_vertices.data()),
                                stagingBuffer.size);
@@ -580,10 +598,39 @@ void Renderer::createMesh() {
   m_testIndex = allocator.createBuffer(&indexCI, &indexAI);
   m_testIndex.transferMemory(allocator, (void*)g_indices.data(),
                              m_testIndex.size);
+  // create axis buffer
+  VkBufferCreateInfo axisBufferCI{
+      .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .pNext       = nullptr,
+      .flags       = 0,
+      .size        = sizeof(g_axis[0]) * g_axis.size(),
+      .usage       = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+  };
+  vertexAI.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+  m_axisBuffer = allocator.createBuffer(&axisBufferCI, &vertexAI);
+  m_axisBuffer.transferMemory(allocator, (void*)g_axis.data(),
+                              m_axisBuffer.size);
+  // create axis index buffer
+  VkBufferCreateInfo axisIndexBufferCI{
+      .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .pNext       = nullptr,
+      .flags       = 0,
+      .size        = sizeof(g_axisIndices[0]) * g_axisIndices.size(),
+      .usage       = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+  };
+  m_axisIndex = allocator.createBuffer(&axisIndexBufferCI, &vertexAI);
+  m_axisBuffer.transferMemory(allocator, (void*)g_axisIndices.data(),
+                              m_axisBuffer.size);
 }
 
 void Renderer::destroyMesh() {
   BufferAllocator& allocator = m_application->m_allocator;
+  allocator.destroyBuffer(m_axisIndex);
+  allocator.destroyBuffer(m_axisBuffer);
+
   allocator.destroyBuffer(m_testMesh);
   allocator.destroyBuffer(m_testIndex);
 }

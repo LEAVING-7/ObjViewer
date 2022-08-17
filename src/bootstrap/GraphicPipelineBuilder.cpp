@@ -1,12 +1,6 @@
 #include "bootstrap/GraphicPipelineBuilder.hpp"
 
 namespace myvk::bs {
-GraphicPipelineBuilder& GraphicPipelineBuilder::setShader(
-    std::vector<VkPipelineShaderStageCreateInfo>&& shaders) {
-  this->shaders = std::forward<decltype(shaders)>(shaders);
-  return *this;
-}
-
 GraphicPipelineBuilder&
 GraphicPipelineBuilder::noColorBlend(VkColorComponentFlags colorWriteMask) {
   this->colorBlendAttachment = VkPipelineColorBlendAttachmentState{
@@ -16,38 +10,11 @@ GraphicPipelineBuilder::noColorBlend(VkColorComponentFlags colorWriteMask) {
   return *this;
 }
 
-GraphicPipelineBuilder&
-GraphicPipelineBuilder::setDynamic(uint32_t              dynamicStateCount,
-                                   const VkDynamicState* pDynamicStates) {
-  this->dynamic = {
-      .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-      .pNext             = nullptr,
-      .flags             = 0,
-      .dynamicStateCount = dynamicStateCount,
-      .pDynamicStates    = pDynamicStates,
-  };
-  return *this;
-}
+
 GraphicPipelineBuilder& GraphicPipelineBuilder::setVertexInput(
     data::VertexInputDescription&& vertDesc) {
   return setVertexInput(vertDesc.bindings.size(), vertDesc.bindings.data(),
                         vertDesc.attributes.size(), vertDesc.attributes.data());
-}
-GraphicPipelineBuilder& GraphicPipelineBuilder::setVertexInput(
-    u32                                      vertexBindingDescriptionCount,
-    const VkVertexInputBindingDescription*   pVertexBindingDescriptions,
-    u32                                      vertexAttributeDescriptionCount,
-    const VkVertexInputAttributeDescription* pVertexAttributeDescriptions) {
-  this->vertexInputInfo = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0,
-      .vertexBindingDescriptionCount   = vertexBindingDescriptionCount,
-      .pVertexBindingDescriptions      = pVertexBindingDescriptions,
-      .vertexAttributeDescriptionCount = vertexAttributeDescriptionCount,
-      .pVertexAttributeDescriptions    = pVertexAttributeDescriptions,
-  };
-  return *this;
 }
 
 GraphicPipelineBuilder&
@@ -119,6 +86,7 @@ GraphicPipelineBuilder& GraphicPipelineBuilder::setColorBlendAttachment(
   };
   return *this;
 }
+
 GraphicPipelineBuilder&
 GraphicPipelineBuilder::setTessellation(uint32_t patchControlPoints) {
   this->tessellation = {
@@ -129,6 +97,7 @@ GraphicPipelineBuilder::setTessellation(uint32_t patchControlPoints) {
   };
   return *this;
 }
+
 GraphicPipelineBuilder& GraphicPipelineBuilder::setDepthStencil(
     VkBool32 depthTestEnable, VkBool32 depthWriteEnable,
     VkCompareOp depthCompareOp, VkBool32 depthBoundsTestEnable,
@@ -168,39 +137,45 @@ GraphicPipelineBuilder& GraphicPipelineBuilder::setDeepNoStencil(
   };
   return *this;
 }
-GraphicPipelineBuilder& GraphicPipelineBuilder::setViewPortAndScissor(
-    std::vector<VkViewport>&& viewports, std::vector<VkRect2D>&& scissor) {
-  this->viewports = std::forward<decltype(viewports)>(viewports);
-  this->scissors  = std::forward<decltype(scissor)>(scissor);
-  return *this;
-}
-GraphicPipelineBuilder&
-GraphicPipelineBuilder::setViewPortAndScissorCount(size_t viewportCount,
-                                                   size_t scissorCount) {
-  this->viewports.isInit = true;
-  this->viewports.value.resize(viewportCount);
-  this->viewports.value.resize(scissorCount);
-  return *this;
-}
 
 VkPipeline GraphicPipelineBuilder::build(VkDevice         device,
                                          VkRenderPass     renderPass,
                                          VkPipelineLayout layout,
+                                         bool             enableTessellation,
                                          VkPipelineCache  cache) {
   GraphicPipelineBuilder* builder = this;
+
+  VkPipelineDynamicStateCreateInfo dynamicCI;
+
+  if (!dynamicStates.empty()) {
+    dynamicCI = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .dynamicStateCount = u32(dynamicStates.size()),
+        .pDynamicStates    = dynamicStates.data(),
+    };
+  }
+
+  VkPipelineVertexInputStateCreateInfo vertexInputInfo{
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+      .pNext = nullptr,
+      .vertexBindingDescriptionCount   = u32(vertexInput.bindings.size()),
+      .pVertexBindingDescriptions      = vertexInput.bindings.data(),
+      .vertexAttributeDescriptionCount = u32(vertexInput.attributes.size()),
+      .pVertexAttributeDescriptions    = vertexInput.attributes.data(),
+  };
 
   VkPipelineViewportStateCreateInfo viewportState{
       .sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
       .pNext         = nullptr,
       .flags         = 0,
-      .viewportCount = u32(builder->viewports.value.size()),
-      .pViewports    = builder->viewports.value.data(),
-      .scissorCount  = u32(builder->scissors.value.size()),
-      .pScissors     = builder->scissors.value.data(),
+      .viewportCount = u32(builder->viewports.size()),
+      .pViewports    = builder->viewports.data(),
+      .scissorCount  = u32(builder->scissors.size()),
+      .pScissors     = builder->scissors.data(),
   };
 
-  builder->colorBlendAttachment.required();
-  
   VkPipelineColorBlendStateCreateInfo colorBlending{
       .sType         = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
       .pNext         = nullptr,
@@ -211,30 +186,22 @@ VkPipeline GraphicPipelineBuilder::build(VkDevice         device,
       .pAttachments    = &builder->colorBlendAttachment,
   };
 
-  builder->vertexInputInfo.required();
-  builder->shaders.required();
-  builder->vertexInputInfo.required();
-  builder->viewports.required();
-  builder->rasterizer.required();
-  builder->multisampling.required();
-  builder->depthStencil.required();
-
   VkGraphicsPipelineCreateInfo pipelineCI{
       .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       .pNext               = nullptr,
       .flags               = 0,
-      .stageCount          = u32(shaders.value.size()),
-      .pStages             = shaders.value.data(),
-      .pVertexInputState   = &builder->vertexInputInfo,
+      .stageCount          = u32(shaders.size()),
+      .pStages             = shaders.data(),
+      .pVertexInputState   = &vertexInputInfo,
       .pInputAssemblyState = &builder->inputAssembly,
       .pTessellationState =
-          builder->tessellation.isInit ? &builder->tessellation : nullptr,
+          enableTessellation ? &builder->tessellation : nullptr,
       .pViewportState      = &viewportState,
       .pRasterizationState = &builder->rasterizer,
       .pMultisampleState   = &builder->multisampling,
       .pDepthStencilState  = &builder->depthStencil,
       .pColorBlendState    = &colorBlending,
-      .pDynamicState       = &builder->dynamic,
+      .pDynamicState       = dynamicStates.empty() ? nullptr : &dynamicCI,
       .layout              = layout,
       .renderPass          = renderPass,
       .subpass             = 0,
@@ -242,16 +209,15 @@ VkPipeline GraphicPipelineBuilder::build(VkDevice         device,
   };
 
   VkPipeline ret;
-  auto result =
+  auto       result =
       vkCreateGraphicsPipelines(device, cache, 1, &pipelineCI, nullptr, &ret);
   assert(result == VK_SUCCESS);
   return ret;
 }
 
-std::pair<VkPipeline, VkPipelineCache>
-GraphicPipelineBuilder::buildWithCache(VkDevice device, VkRenderPass pass,
-                                       VkPipelineLayout layout,
-                                       VkPipelineCache  cache, size_t initialDataSize, void *pInitialData) {
+std::pair<VkPipeline, VkPipelineCache> GraphicPipelineBuilder::buildWithCache(
+    VkDevice device, VkRenderPass pass, VkPipelineLayout layout,
+    VkPipelineCache cache, size_t initialDataSize, void* pInitialData) {
   VkPipelineCache outCache;
   VkPipeline      outPipeline = build(device, pass, layout, cache);
 
