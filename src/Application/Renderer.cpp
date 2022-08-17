@@ -5,15 +5,29 @@
 
 namespace myvk::bs {
 
+float g_frameBegin = 0;
+float g_frameEnd   = 0;
+
 const std::vector<data::Vertex> g_vertices = {
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}},
+    {{-0.5f, -0.5f, 0.f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f, 0.f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f, 0.f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f, 0.f}, {1.0f, 1.0f, 1.0f}},
 };
 
 const std::vector<u16> g_indices = {
     0, 1, 2, 2, 3, 0,
+};
+
+const std::vector<data::Vertex> g_axis = {
+    {{0, 0, 0}, {0, 0, 0}}, // original
+    {{1, 0, 0}, {1, 0, 0}}, // x
+    {{0, 1, 0}, {0, 1, 0}}, // y
+    {{0, 0, 1}, {0, 0, 1}}, // z
+};
+
+const std::vector<u16> g_axisIndices = {
+    0, 1, 0, 2, 0, 3,
 };
 
 struct UniformBufferObject {
@@ -22,31 +36,20 @@ struct UniformBufferObject {
   glm::mat4 proj;
 } g_uniformData;
 
-void windowKeyCallback(GLFWwindow* window, int key, int scancode, int action,
-                       int mods) {
-  Renderer* renderer = gui::MainWindow::getUserPointer<Renderer*>(window);
-  data::Camera &camera = renderer->m_state.camera;
-  using enum data::Camera::MoveDirection;
-  LOG_INFO("{} {} {}", camera.position.x, camera.position.y, camera.position.z);
-  if (key == GLFW_KEY_ESCAPE) {
-    glfwSetWindowShouldClose(window, GLFW_TRUE);
-  } else if (key == GLFW_KEY_W) {
-    renderer->m_state.camera.move(eForward);
-  } else if (key == GLFW_KEY_A) {
-    renderer->m_state.camera.move(eLeft);
-  } else if (key == GLFW_KEY_S) {
-    renderer->m_state.camera.move(eBackward);
-  } else if (key == GLFW_KEY_D) {
-    renderer->m_state.camera.move(eRight);
-  }
-}
-
 void windowCursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
   Renderer* renderer = gui::MainWindow::getUserPointer<Renderer*>(window);
-  // float     width    = renderer->m_window.m_width / 2.f;
-  // float     height   = renderer->m_window.m_height / 2.f;
-  // renderer->m_state.camera.processMouseMovement(xpos - width, ypos - height);
-  // glfwSetCursorPos(window, width, height);
+  if (renderer->m_window.getKey(GLFW_KEY_LEFT_ALT) == GLFW_PRESS) {
+    renderer->m_window.setInputMode(GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    return;
+  } else {
+    renderer->m_window.setInputMode(GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+  }
+  float windowWidth  = renderer->m_window.m_width / 2;
+  float windowHeight = renderer->m_window.m_height / 2;
+  xpos -= windowWidth;
+  ypos -= windowHeight;
+  renderer->m_state.camera.processMouseMovement(xpos, ypos);
+  glfwSetCursorPos(window, windowWidth, windowHeight);
 }
 
 void windowFramebufferResizeCallback(GLFWwindow* window, int width,
@@ -112,6 +115,7 @@ void Renderer::prepare() {}
 
 void Renderer::render() {
   glfwPollEvents();
+
   VkResult result;
 
   auto& currentData = m_frameBuffer.currentFrameData();
@@ -132,6 +136,25 @@ void Renderer::render() {
   } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     LOG_ERR("failed to acquire next image");
     return;
+  }
+
+  if (m_window.getKey(GLFW_KEY_W) == GLFW_PRESS) {
+    m_state.camera.move(data::Camera::MoveDirection::eForward);
+  }
+  if (m_window.getKey(GLFW_KEY_A) == GLFW_PRESS) {
+    m_state.camera.move(data::Camera::MoveDirection::eLeft);
+  }
+  if (m_window.getKey(GLFW_KEY_S) == GLFW_PRESS) {
+    m_state.camera.move(data::Camera::MoveDirection::eBackward);
+  }
+  if (m_window.getKey(GLFW_KEY_D) == GLFW_PRESS) {
+    m_state.camera.move(data::Camera::MoveDirection::eRight);
+  }
+  if (m_window.getKey(GLFW_KEY_Q) == GLFW_PRESS) {
+    m_state.camera.move(data::Camera::MoveDirection::eUp);
+  }
+  if (m_window.getKey(GLFW_KEY_E) == GLFW_PRESS) {
+    m_state.camera.move(data::Camera::MoveDirection::eDown);
   }
 
   currentData.renderFence.reset(*m_application);
@@ -166,18 +189,20 @@ void Renderer::render() {
                                         VK_SUBPASS_CONTENTS_INLINE);
   currentData.cmdBuffer.bindPipelineGraphic(m_defaultPipeline);
 
-  float time          = glfwGetTime();
+  float time = glfwGetTime();
+
   g_uniformData.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
                                     glm::vec3(0.0f, 0.0f, 1.0f));
-  g_uniformData.view  = m_state.camera.viewMat();
-  g_uniformData.proj  = glm::perspective(
-       glm::radians(45.0f), m_window.m_width / (float)m_window.m_height, 0.1f,
-       10.0f);
+
+  g_uniformData.view = m_state.camera.viewMat();
+  g_uniformData.proj = glm::perspective(
+      glm::radians(45.f), m_window.m_width / (float)m_window.m_height, 0.1f,
+      100.0f);
+
+  g_uniformData.proj[1][1] *= -1;
 
   m_uniformBuffer.transferMemory(m_application->m_allocator, &g_uniformData,
                                  sizeof(g_uniformData));
-
-  g_uniformData.proj[1][1] *= -1;
 
   currentData.cmdBuffer.bindVertexBuffer(&m_testMesh.buffer);
   currentData.cmdBuffer.bindIndexBuffer(m_testIndex.buffer,
@@ -235,8 +260,14 @@ void Renderer::createWindow(VkInstance instance, u32 width, u32 height) {
 
   m_window.setErrorCallback()
       .setCursorPosCallback(windowCursorPosCallback)
-      .setKeyCallback(windowKeyCallback)
-      .setFramebufferSizeCallback(windowFramebufferResizeCallback);
+      .setFramebufferSizeCallback(windowFramebufferResizeCallback)
+      .setKeyCallback(
+          [](GLFWwindow* wnd, int key, int scancode, int action, int mods) {
+            if (key == GLFW_KEY_ESCAPE) {
+              glfwSetWindowShouldClose(wnd, GLFW_TRUE);
+            }
+          })
+      .setInputMode(GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 void Renderer::destroyWindow(VkInstance instance) {
   vkDestroySurfaceKHR(instance, m_surface, nullptr);
@@ -374,6 +405,7 @@ void Renderer::createRenderPass(bool includeDepth, bool clear) {
       vkCreateRenderPass(*m_application, &renderPassCI, nullptr, &m_renderPass);
   assert(result == VK_SUCCESS);
 }
+
 void Renderer::destroyRenderPass() {
   vkDestroyRenderPass(*m_application, m_renderPass, nullptr);
 }
@@ -442,7 +474,7 @@ void Renderer::createDefaultPipeline() {
   m_defaultPipelineBuilder.reset(new GraphicPipelineBuilder{});
   VkDynamicState dynamicState[] = {VK_DYNAMIC_STATE_VIEWPORT,
                                    VK_DYNAMIC_STATE_SCISSOR};
-  m_defaultPipeline =
+  auto [defaultPipeline, defaultPipelineCache] =
       (*m_defaultPipelineBuilder)
           .setShader({m_shaders["mainVert"].m_shaderInfo,
                       m_shaders["mainFrag"].m_shaderInfo})
@@ -471,13 +503,19 @@ void Renderer::createDefaultPipeline() {
                             0, 1)
           .setMultisample(VK_SAMPLE_COUNT_1_BIT, VK_FALSE, 1.f, nullptr,
                           VK_FALSE, VK_FALSE)
-          .build(*m_application, m_renderPass, m_defaultPipelineLayout);
+          .buildWithCache(*m_application, m_renderPass,
+                          m_defaultPipelineLayout);
+  m_defaultPipeline      = defaultPipeline;
+  m_defaultPipelineCache = defaultPipelineCache;
+
+
+  
 }
 
 void Renderer::destroyDefaultPipeline() {
-  vkDestroyPipelineLayout(m_application->getVkDevice(), m_defaultPipelineLayout,
-                          nullptr);
-  vkDestroyPipeline(m_application->getVkDevice(), m_defaultPipeline, nullptr);
+  vkDestroyPipelineLayout(*m_application, m_defaultPipelineLayout, nullptr);
+  vkDestroyPipelineCache(*m_application, m_defaultPipelineCache, nullptr);
+  vkDestroyPipeline(*m_application, m_defaultPipeline, nullptr);
 }
 
 void Renderer::getGraphicQueueAndQueueIndex() {
@@ -553,28 +591,22 @@ void Renderer::destroyMesh() {
 void Renderer::createDescriptorSets() {
   auto& allocator = m_application->m_allocator;
 
-  VkDescriptorPoolSize uniformPoolSize{
-      .type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      .descriptorCount = m_swapchainObj->getImageCount(),
-  };
+  DescriptorPoolSizeList sizeList;
+  sizeList.add(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+               m_swapchainObj->getImageCount());
+
   m_descPool.create(*m_application,
-                    VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 8, 1,
-                    &uniformPoolSize);
+                    VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 8,
+                    sizeList.list);
 
-  VkDescriptorSetLayoutBinding uniformBinding{
-      .binding            = 0,
-      .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      .descriptorCount    = 1,
-      .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
-      .pImmutableSamplers = nullptr,
-  };
-
-  m_uniformLayout.create(*m_application, 1, &uniformBinding);
+  DescriptorSetLayoutBindingList bindingList;
+  bindingList.add(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+                  VK_SHADER_STAGE_VERTEX_BIT);
+  m_uniformLayout.create(*m_application, bindingList.bindings);
 
   std::vector<VkDescriptorSetLayout> layouts(m_swapchainObj->getImageCount(),
                                              m_uniformLayout.setLayout);
-  m_uniformSets =
-      m_descPool.allocSets(*m_application, std::size(layouts), layouts.data());
+  m_uniformSets = m_descPool.allocSets(*m_application, layouts);
 
   VkBufferCreateInfo uniformBufferCI{
       .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -593,12 +625,13 @@ void Renderer::createDescriptorSets() {
       .offset = 0,
       .range  = VK_WHOLE_SIZE,
   };
-  for (auto& set : m_uniformSets) {
+
+  for (u32 i = 0; i < m_uniformSets.size(); ++i) {
     VkWriteDescriptorSet writeSet{
         .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .pNext           = nullptr,
-        .dstSet          = set,
-        .dstBinding      = uniformBinding.binding,
+        .dstSet          = m_uniformSets[i],
+        .dstBinding      = bindingList.bindings[0].binding,
         .dstArrayElement = 0,
         .descriptorCount = 1,
         .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,

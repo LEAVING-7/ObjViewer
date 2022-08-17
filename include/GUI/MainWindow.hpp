@@ -24,9 +24,13 @@ public:
   static void waitEvents();
 
   static void setUserPointer(GLFWwindow* m_window, void* pointer);
-  
+
   template <typename T> static T getUserPointer(GLFWwindow* m_window) {
     return reinterpret_cast<T>(glfwGetWindowUserPointer(m_window));
+  }
+
+  int getKey(int key) {
+    return glfwGetKey(m_window, key);
   }
 
   MainWindow& setErrorCallback(GLFWerrorfun callback =
@@ -39,5 +43,6 @@ public:
   MainWindow& setWindowSizeCallback(GLFWwindowsizefun callback);
   MainWindow& setCursorPosCallback(GLFWcursorposfun callback);
   MainWindow& setFramebufferSizeCallback(GLFWframebuffersizefun callback);
+  MainWindow& setInputMode(int mode, int input);
 };
 } // namespace myvk::gui

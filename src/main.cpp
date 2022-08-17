@@ -3,9 +3,12 @@
 
 #include <memory>
 
-int   allocCnt   = 0;
-int   deallocCnt = 0;
+int allocCnt   = 0;
+int deallocCnt = 0;
+
+double   allocAmount = 0;
 void* operator new(size_t size) {
+  allocAmount += size;
   ++allocCnt;
   return malloc(size);
 }
@@ -42,5 +45,5 @@ int main() {
     }
     appObj->deInitialize();
   }
-  LOG_INFO("{} {}", allocCnt, deallocCnt);
+  LOG_INFO("{} {} Amount: {}", allocCnt, deallocCnt, allocAmount / (1024 * 1024) );
 }

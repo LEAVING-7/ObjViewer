@@ -20,7 +20,7 @@ class Application;
 class Device;
 
 struct RendererState {
-  data::Camera camera;
+  data::Camera camera{};
 };
 
 class Renderer {
@@ -81,7 +81,11 @@ public:
 
   std::unique_ptr<GraphicPipelineBuilder> m_defaultPipelineBuilder;
   VkPipeline                              m_defaultPipeline;
+  VkPipelineCache                         m_defaultPipelineCache;
   VkPipelineLayout                        m_defaultPipelineLayout;
+
+  VkPipeline m_axisPipeline;
+  
 
   VkQueue m_graphicQueue;
   u32     m_graphicQueueIndex;

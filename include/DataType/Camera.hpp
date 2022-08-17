@@ -1,13 +1,12 @@
 #pragma once
 #include "common.hpp"
 
-#include <chrono>
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
-void inline log_vec3(glm::vec3& vec) {
-  LOG_INFO("[{}, {}, {}]", vec.x, vec.y, vec.z);
-}
+#define LOG_VEC3(vec) LOG_INFO(#vec ": [{:.4}, {:.4}, {:.4}]", vec.x, vec.y, vec.z);
+
+
 
 namespace myvk::data {
 struct Camera {
@@ -16,35 +15,34 @@ struct Camera {
     eBackward,
     eLeft,
     eRight,
+    eUp,
+    eDown,
   };
 
-  glm::vec3 position{0.f, 0.f, 0.f};
-  glm::vec3 front{0.f, 0.f, 1.f};
-  glm::vec3 up;
-  glm::vec3 right;
-  glm::vec3 worldUp{0.f, 0.f, 1.f};
+  glm::vec3 m_position{0.f, 0.f, 0.f};
+  glm::vec3 m_front{0.f, 0.f, 1.f};
+  glm::vec3 m_up{-1, 0, 0};
+  glm::vec3 m_right{0, -1, 0};
+  glm::vec3 m_worldUp{0, 1, 0.f};
 
-  float yam{0.f}, pitch{0.f};
+  float m_yam{0.f}, m_pitch{0.f};
 
-  float movementSpeed{2.5f}, mouseSensitivity{1.f}, zoom{45.f};
+  float m_movementSpeed{2.5f}, m_mouseSensitivity{.1f}, m_zoom{45.f};
 
   Camera() {
-    updateCameraVectors();
-    log_vec3(up);
-    log_vec3(right);
-    log_vec3(front);
+    // updateCameraVectors();
   };
 
-  Camera(glm::vec3 position, glm::vec3 front, glm::vec3 up)
-      : position{position}, front{front}, up{up} {}
-
-  glm::mat4 viewMat() {
-    return glm::lookAt(position, position + front, up);
+  Camera(glm::vec3 position, glm::vec3 front, glm::vec3 worldUp)
+      : m_position{position}, m_front{front}, m_worldUp{worldUp} {
   }
 
-  void move(MoveDirection dir);
-  void processMouseMovement(float xOffset, float yOffset);
+  glm::mat4 viewMat() {
+    return glm::lookAtRH(m_position, m_position + m_front, m_up);
+  }
 
+  void move(MoveDirection dir, float time = 1.f);
+  void processMouseMovement(float xOffset, float yOffset);
 private:
   void updateCameraVectors();
 };

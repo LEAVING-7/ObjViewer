@@ -5,7 +5,6 @@
 #include "DataType/Vertex.hpp"
 namespace myvk::bs {
 struct GraphicPipelineBuilder {
-
   template <typename T> struct Init {
     bool isInit{false};
     T    value;
@@ -54,8 +53,12 @@ struct GraphicPipelineBuilder {
   Init<VkPipelineDepthStencilStateCreateInfo> depthStencil;
 
   VkPipeline build(VkDevice device, VkRenderPass pass, VkPipelineLayout layout,
-                   GraphicPipelineBuilder* builder = nullptr,
-                   VkPipelineCache         cache   = VK_NULL_HANDLE);
+                   VkPipelineCache cache = VK_NULL_HANDLE);
+
+  std::pair<VkPipeline, VkPipelineCache>
+  buildWithCache(VkDevice device, VkRenderPass pass, VkPipelineLayout layout,
+                 VkPipelineCache cache  = VK_NULL_HANDLE,
+                 size_t initialDataSize = 0, void* pInitialData = nullptr);
 
   GraphicPipelineBuilder&
   setShader(std::vector<VkPipelineShaderStageCreateInfo>&& shaders);

@@ -76,4 +76,9 @@ MainWindow::setFramebufferSizeCallback(GLFWframebuffersizefun callback) {
   return *this;
 }
 
+MainWindow& MainWindow::setInputMode(int mode, int value) {
+  glfwSetInputMode(m_window, mode, value);
+  return *this;
+}
+
 } // namespace myvk::gui

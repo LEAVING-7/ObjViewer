@@ -2,46 +2,59 @@
 
 namespace myvk::data {
 
-void Camera::move(MoveDirection dir) {
-  float velocity = 0.1f;
+void Camera::move(MoveDirection dir, float time) {
+  float velocity = 0.05f * time;
   switch (dir) {
   case MoveDirection::eForward:
-    position += front * velocity;
+    m_position += m_front * velocity;
     break;
   case MoveDirection::eBackward:
-    position -= front * velocity;
+    m_position -= m_front * velocity;
     break;
   case MoveDirection::eLeft:
-    position -= right * velocity;
+    m_position -= m_right * velocity;
     break;
   case MoveDirection::eRight:
-    position += right * velocity;
+    m_position += m_right * velocity;
+    break;
+  case MoveDirection::eUp:
+    m_position += m_up * velocity;
+    break;
+  case MoveDirection::eDown:
+    m_position -= m_up * velocity;
     break;
   }
 }
 void Camera::processMouseMovement(float xOffset, float yOffset) {
-  xOffset *= mouseSensitivity;
-  yOffset *= mouseSensitivity;
-  yam += xOffset;
-  pitch -= yOffset;
+  xOffset *= m_mouseSensitivity;
+  yOffset *= m_mouseSensitivity;
+  m_yam += xOffset;
+  m_pitch -= yOffset;
 
-  if (pitch > 89.9f)
-    pitch = 89.f;
-  if (pitch < -89.9f)
-    pitch = -89.f;
+  if (m_pitch > 89.9f)
+    m_pitch = 89.f;
+  if (m_pitch < -89.9f)
+    m_pitch = -89.f;
 
-  updateCameraVectors();
+  float degreeYam = glm::radians(m_yam), degreePitch = glm::radians(m_pitch);
+  glm::vec3 newFront = {
+      cos(degreeYam) * cos(degreePitch),
+      sin(degreePitch),
+      sin(degreeYam) * cos(degreePitch),
+  };
+  m_front = glm::normalize(newFront);
+  m_right = glm::normalize(glm::cross(m_front, m_worldUp));
+  m_up    = glm::normalize(glm::cross(m_right, m_front));
 }
 void Camera::updateCameraVectors() {
   glm::vec3 front{
-      cos(glm::radians(yam)) * cos(glm::radians(pitch)),
-      sin(glm::radians(pitch)),
-      sin(glm::radians(yam)) * cos(glm::radians(pitch)),
+      cos(glm::radians(m_yam)) * cos(glm::radians(m_pitch)),
+      sin(glm::radians(m_pitch)),
+      sin(glm::radians(m_yam)) * cos(glm::radians(m_pitch)),
   };
-  front = glm::normalize(front);
-  right = glm::normalize(glm::cross(front, worldUp));
-  up    = glm::normalize(glm::cross(right, front));
-  
+  m_front = glm::normalize(front);
+  m_right = glm::normalize(glm::cross(front, m_worldUp));
+  m_up    = glm::normalize(glm::cross(m_right, front));
 }
 
 } // namespace myvk::data

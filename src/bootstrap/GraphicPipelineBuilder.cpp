@@ -183,12 +183,11 @@ GraphicPipelineBuilder::setViewPortAndScissorCount(size_t viewportCount,
   return *this;
 }
 
-VkPipeline GraphicPipelineBuilder::build(VkDevice                device,
-                                         VkRenderPass            renderPass,
-                                         VkPipelineLayout        layout,
-                                         GraphicPipelineBuilder* builder,
-                                         VkPipelineCache         cache) {
-  builder = builder ? builder : this;
+VkPipeline GraphicPipelineBuilder::build(VkDevice         device,
+                                         VkRenderPass     renderPass,
+                                         VkPipelineLayout layout,
+                                         VkPipelineCache  cache) {
+  GraphicPipelineBuilder* builder = this;
 
   VkPipelineViewportStateCreateInfo viewportState{
       .sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
@@ -201,6 +200,7 @@ VkPipeline GraphicPipelineBuilder::build(VkDevice                device,
   };
 
   builder->colorBlendAttachment.required();
+  
   VkPipelineColorBlendStateCreateInfo colorBlending{
       .sType         = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
       .pNext         = nullptr,
@@ -240,12 +240,31 @@ VkPipeline GraphicPipelineBuilder::build(VkDevice                device,
       .subpass             = 0,
       .basePipelineHandle  = VK_NULL_HANDLE,
   };
-  VkPipeline ret;
 
+  VkPipeline ret;
   auto result =
       vkCreateGraphicsPipelines(device, cache, 1, &pipelineCI, nullptr, &ret);
   assert(result == VK_SUCCESS);
   return ret;
 }
 
+std::pair<VkPipeline, VkPipelineCache>
+GraphicPipelineBuilder::buildWithCache(VkDevice device, VkRenderPass pass,
+                                       VkPipelineLayout layout,
+                                       VkPipelineCache  cache, size_t initialDataSize, void *pInitialData) {
+  VkPipelineCache outCache;
+  VkPipeline      outPipeline = build(device, pass, layout, cache);
+
+  VkPipelineCacheCreateInfo CI{
+      .sType           = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+      .pNext           = nullptr,
+      .flags           = 0,
+      .initialDataSize = initialDataSize,
+      .pInitialData    = pInitialData,
+  };
+
+  auto result = vkCreatePipelineCache(device, &CI, nullptr, &outCache);
+  assert(result == VK_SUCCESS);
+  return std::make_pair(outPipeline, outCache);
+}
 } // namespace myvk::bs
