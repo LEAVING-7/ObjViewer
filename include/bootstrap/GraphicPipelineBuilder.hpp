@@ -2,7 +2,7 @@
 #include "common.hpp"
 #include "pch.hpp"
 
-#include "DataType/Vertex.hpp"
+#include "DataType/Mesh.hpp"
 namespace myvk::bs {
 struct GraphicPipelineBuilder {
 

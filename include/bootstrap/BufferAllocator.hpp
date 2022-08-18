@@ -103,6 +103,26 @@ public:
   void invalidMappedMemory(AllocatedBuffer& buffer) {
     vmaInvalidateAllocation(m_allocator, buffer.allocation, 0, buffer.size);
   }
+
+  template <typename T>
+  [[nodiscard]] AllocatedBuffer createBuffer(std::vector<T>&    vec,
+                                             VkBufferUsageFlags bufferUsage,
+                                             VmaMemoryUsage     allocUsage) {
+    size_t bufferSize = sizeof(T) * vec.size();
+
+    VkBufferCreateInfo CI{
+        .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .pNext       = nullptr,
+        .flags       = 0,
+        .size        = bufferSize,
+        .usage       = bufferUsage,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    };
+    VmaAllocationCreateInfo AI{
+        .usage = allocUsage,
+    };
+    return createBuffer(&CI, &AI);
+  }
 };
 
 } // namespace myvk::bs

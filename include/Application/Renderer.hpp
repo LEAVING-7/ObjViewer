@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include "DataType/Camera.hpp"
+#include "DataType/Model.hpp"
 #include "DataType/Texture.hpp"
 #include "GUI/MainWindow.hpp"
 
@@ -88,18 +89,11 @@ public:
   VkPipelineCache                         m_defaultPipelineCache;
   VkPipelineLayout                        m_defaultPipelineLayout;
 
-  VkPipeline      m_axisPipeline;
-  AllocatedBuffer m_axisBuffer;
-  AllocatedBuffer m_axisIndex;
-
   CommandPool m_transientCmdPool;
 
   VkQueue m_graphicQueue;
   u32     m_graphicQueueIndex;
-  VkQueue m_transferQueue;
-  u32     m_transferQueueIndex;
 
-  
   DescriptorPool               m_descPool;
   DescriptorSetLayout          m_uniformLayout;
   std::vector<VkDescriptorSet> m_uniformSets;
@@ -108,9 +102,12 @@ public:
   ImageView          m_testTextureImageView;
   Sampler            m_testTextureSampler;
 
-  AllocatedBuffer m_testMesh;
-  AllocatedBuffer m_testIndex;
+  data::ObjModel  m_testModel;
+  AllocatedBuffer m_testModelVertexBuf;
+  AllocatedBuffer m_testModelIndexBuf;
+
   AllocatedBuffer m_uniformBuffer;
+
   // private:
   Application*               m_application;
   std::unique_ptr<Swapchain> m_swapchainObj;

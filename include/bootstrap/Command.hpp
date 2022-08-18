@@ -27,7 +27,7 @@ struct CommandBuffer {
                        VkSubpassContents      contents);
   void endRenderPass();
 
-  void bindVertexBuffer(VkBuffer* buffer);
+  void bindVertexBuffer(VkBuffer buffer);
   void bindVertexBuffers(u32 firstBinding, u32 bindingCount,
                          const VkBuffer*     pBuffers,
                          const VkDeviceSize* pOffsets);

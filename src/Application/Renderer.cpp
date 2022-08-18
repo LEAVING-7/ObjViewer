@@ -1,35 +1,25 @@
 #include "Application/Renderer.hpp"
 #include "Application/Application.hpp"
 
-#include "DataType/Vertex.hpp"
+#include "DataType/Mesh.hpp"
 
 namespace myvk::bs {
 
 float g_frameBegin = 0;
 float g_frameEnd   = 0;
 
-const std::vector<data::Vertex> g_vertices = {
-    {{-0.5f, -0.5f, 0.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, -0.5f, 1.f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-};
-
-const std::vector<u16> g_indices = {
-    0, 1, 2, 2, 3, 0,
-};
-
 std::vector<data::Vertex> g_axis = {
-    {{0, 0, 0}, {0, 0, 0}, {0, 0}}, // original
-    {{3, 0, 0}, {1, 0, 0}, {0, 0}}, // x
-    {{0, 3, 0}, {0, 1, 0}, {0, 0}}, // y
-    {{0, 0, 3}, {0, 0, 1}, {0, 0}}, // z
+    {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0}}, // original
+    {{9, 0, 0}, {1, 0, 0}, {0, 0, 0}, {0, 0}}, // x
+    {{0, 9, 0}, {0, 1, 0}, {0, 0, 0}, {0, 0}}, // y
+    {{0, 0, 9}, {0, 0, 1}, {0, 0, 0}, {0, 0}}, // z
 };
 
-const std::vector<u16> g_axisIndices = {
+std::vector<u16> g_axisIndices = {
     1, 0, 2, 0, 3, 0,
 };
-
+AllocatedBuffer g_axisVertexBuf;
+AllocatedBuffer g_axisIndexBuf;
 struct UniformBufferObject {
   glm::mat4 model;
   glm::mat4 view;
@@ -160,31 +150,27 @@ void Renderer::render() {
                                         VK_SUBPASS_CONTENTS_INLINE);
   currentData.cmdBuffer.bindPipelineGraphic(m_defaultPipeline);
 
-  g_uniformData.model = glm::mat4{1};
+  g_uniformData.model = glm::mat4{1.f};
   g_uniformData.view  = m_state.camera.viewMat();
   g_uniformData.proj =
       m_state.camera.projMat((float)m_window.m_width / m_window.m_height);
-
   m_uniformBuffer.transferMemory(m_application->m_allocator, &g_uniformData,
                                  sizeof(g_uniformData));
-
-  m_axisBuffer.transferMemory(m_application->m_allocator, (void*)g_axis.data(),
-                              m_axisBuffer.size);
-  currentData.cmdBuffer.bindVertexBuffer(&m_testMesh.buffer);
-  currentData.cmdBuffer.bindIndexBuffer(m_testIndex.buffer,
-                                        VK_INDEX_TYPE_UINT16);
 
   currentData.cmdBuffer.bindDescriptorSetNoDynamic(
       VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipelineLayout, 0, 1,
       &m_uniformSets[swapchainImgIdx]);
 
-  currentData.cmdBuffer.drawIndexed((u32)g_indices.size(), 1, 0, 0, 0);
+  currentData.cmdBuffer.bindVertexBuffer(m_testModelVertexBuf.buffer);
+  currentData.cmdBuffer.bindIndexBuffer(m_testModelIndexBuf.buffer,
+                                        VK_INDEX_TYPE_UINT32);
+  currentData.cmdBuffer.drawIndexed(m_testModel.indices.size(), 1, 0, 0, 0);
 
-  currentData.cmdBuffer.bindPipelineGraphic(m_axisPipeline);
-  currentData.cmdBuffer.bindVertexBuffer(&m_axisBuffer.buffer);
-  currentData.cmdBuffer.bindIndexBuffer(m_axisIndex.buffer,
-                                        VK_INDEX_TYPE_UINT16);
-  currentData.cmdBuffer.drawIndexed((u32)g_axisIndices.size(), 1, 0, 0, 0);
+  // currentData.cmdBuffer.bindVertexBuffer(g_axisVertexBuf.buffer);
+  // currentData.cmdBuffer.bindIndexBuffer(g_axisIndexBuf.buffer,
+  //                                       VK_INDEX_TYPE_UINT16);
+  // currentData.cmdBuffer.drawIndexed(g_axisIndices.size(), 1, 0, 0, 0);
+
   currentData.cmdBuffer.endRenderPass();
   currentData.cmdBuffer.end();
 
@@ -237,8 +223,8 @@ void Renderer::createWindow(VkInstance instance, u32 width, u32 height) {
             if (key == GLFW_KEY_ESCAPE) {
               glfwSetWindowShouldClose(wnd, GLFW_TRUE);
             }
-          })
-      .setInputMode(GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+          });
+      // .setInputMode(GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 void Renderer::destroyWindow(VkInstance instance) {
   vkDestroySurfaceKHR(instance, m_surface, nullptr);
@@ -480,120 +466,41 @@ void Renderer::createDefaultPipeline() {
 
   m_defaultPipeline      = defaultPipeline;
   m_defaultPipelineCache = defaultPipelineCache;
-
-  GraphicPipelineBuilder axisBuilder = *m_defaultPipelineBuilder;
-
-  m_axisPipeline =
-      axisBuilder.setInputAssembly(VK_PRIMITIVE_TOPOLOGY_LINE_LIST, VK_FALSE)
-          .build(*m_application, m_renderPass, m_defaultPipelineLayout,
-                 m_defaultPipelineCache);
 }
 
 void Renderer::destroyDefaultPipeline() {
-  vkDestroyPipeline(*m_application, m_axisPipeline, nullptr);
   vkDestroyPipelineLayout(*m_application, m_defaultPipelineLayout, nullptr);
   vkDestroyPipelineCache(*m_application, m_defaultPipelineCache, nullptr);
   vkDestroyPipeline(*m_application, m_defaultPipeline, nullptr);
 }
 
 void Renderer::getGraphicQueueAndQueueIndex() {
-
   vkb::Device& device = m_application->m_deviceObj->m_device;
   m_graphicQueueIndex =
       device.get_queue_index(vkb::QueueType::graphics).value();
   m_graphicQueue = device.get_queue(vkb::QueueType::graphics).value();
-
-  m_transferQueueIndex =
-      device.get_queue_index(vkb::QueueType::transfer).value();
-  m_transferQueue = device.get_queue(vkb::QueueType::transfer).value();
 }
 
 void Renderer::createMesh() {
-
-  VkBufferCreateInfo vertexBufferCI{
-      .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext       = nullptr,
-      .flags       = 0,
-      .size        = sizeof(g_vertices[0]) * g_vertices.size(),
-      .usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-  };
-  VmaAllocationCreateInfo vertexAI{
-      .usage = VMA_MEMORY_USAGE_CPU_ONLY,
-  };
-
   BufferAllocator& allocator = m_application->m_allocator;
+  m_testModel          = data::ObjModel("assets/lost_empire/lost_empire.obj");
+  m_testModelVertexBuf = m_testModel.allocateVertices(allocator);
+  m_testModelIndexBuf  = m_testModel.allocateIndices(allocator);
 
-  AllocatedBuffer stagingBuffer =
-      allocator.createBuffer(&vertexBufferCI, &vertexAI);
-
-  stagingBuffer.transferMemory(allocator, (void*)(g_vertices.data()),
-                               stagingBuffer.size);
-
-  VkBufferCreateInfo dstBufferCI{
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .size  = stagingBuffer.size,
-      .usage =
-          VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-  };
-  vertexAI.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-  m_testMesh     = allocator.createBuffer(&dstBufferCI, &vertexAI);
-
-  stagingBuffer.copyTo(m_testMesh, *m_application, m_transientCmdPool,
-                       m_graphicQueue);
-  allocator.destroyBuffer(stagingBuffer);
-
-  VkBufferCreateInfo indexCI{
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0,
-      .size  = sizeof(g_indices[0]) * g_indices.size(),
-      .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-  };
-  VmaAllocationCreateInfo indexAI{
-      .usage = VMA_MEMORY_USAGE_CPU_TO_GPU,
-  };
-  m_testIndex = allocator.createBuffer(&indexCI, &indexAI);
-  m_testIndex.transferMemory(allocator, (void*)g_indices.data(),
-                             m_testIndex.size);
-  // create axis buffer
-  VkBufferCreateInfo axisBufferCI{
-      .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext       = nullptr,
-      .flags       = 0,
-      .size        = sizeof(g_axis[0]) * g_axis.size(),
-      .usage       = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-  };
-  vertexAI.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-  m_axisBuffer = allocator.createBuffer(&axisBufferCI, &vertexAI);
-  m_axisBuffer.transferMemory(allocator, (void*)g_axis.data(),
-                              m_axisBuffer.size);
-  // create axis index buffer
-  VkBufferCreateInfo axisIndexBufferCI{
-      .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext       = nullptr,
-      .flags       = 0,
-      .size        = sizeof(g_axisIndices[0]) * g_axisIndices.size(),
-      .usage       = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-  };
-  m_axisIndex = allocator.createBuffer(&axisIndexBufferCI, &vertexAI);
-  m_axisIndex.transferMemory(allocator, (void*)g_axisIndices.data(),
-                             m_axisIndex.size);
+  g_axisVertexBuf = allocator.createBuffer(
+      g_axis, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+  g_axisIndexBuf =
+      allocator.createBuffer(g_axisIndices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                             VMA_MEMORY_USAGE_CPU_TO_GPU);
 }
 
 void Renderer::destroyMesh() {
   BufferAllocator& allocator = m_application->m_allocator;
-  allocator.destroyBuffer(m_axisIndex);
-  allocator.destroyBuffer(m_axisBuffer);
+  allocator.destroyBuffer(m_testModelVertexBuf);
+  allocator.destroyBuffer(m_testModelIndexBuf);
 
-  allocator.destroyBuffer(m_testMesh);
-  allocator.destroyBuffer(m_testIndex);
+  allocator.destroyBuffer(g_axisIndexBuf);
+  allocator.destroyBuffer(g_axisVertexBuf);
 }
 
 void Renderer::createDescriptorSets() {
@@ -681,8 +588,8 @@ void Renderer::destroyDescriptorSets() {
 
 void Renderer::createTextures() {
   m_testTexture.create(m_application->m_allocator, m_transientCmdPool,
-                       "assets/test_texture.jpg", m_graphicQueue,
-                       *m_application);
+                       "assets/lost_empire/lost_empire-RGBA.png",
+                       m_graphicQueue, *m_application);
 
   m_testTextureImageView.create(
       *m_application, m_testTexture.image.image, VK_IMAGE_VIEW_TYPE_2D,

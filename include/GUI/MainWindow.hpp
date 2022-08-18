@@ -38,6 +38,10 @@ public:
     return GLFW_PRESS == getKey(key);
   }
 
+  bool getAttrib(int attribute) {
+    return glfwGetWindowAttrib(m_window, attribute);
+  }
+
   MainWindow& setErrorCallback(GLFWerrorfun callback =
                                    [](int error_code, const char* description) {
                                      LOG_INFO("[glfw error: {}]: {}",

@@ -82,6 +82,13 @@ MainWindow& MainWindow::setInputMode(int mode, int value) {
 }
 
 void MainWindow::updateCamera(data::Camera& camera) {
+  if (!getAttrib(GLFW_HOVERED)) {
+    return;
+  }
+  //  else {
+  //   setInputMode(GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+  // }
+
   if (getKeyPressed(GLFW_KEY_W)) {
     camera.move(data::Camera::MoveDirection::eForward);
   }
@@ -103,13 +110,6 @@ void MainWindow::updateCamera(data::Camera& camera) {
 
   double xpos, ypos;
   glfwGetCursorPos(m_window, &xpos, &ypos);
-
-  if (getKeyPressed(GLFW_KEY_LEFT_ALT)) {
-    setInputMode(GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    return;
-  } else {
-    setInputMode(GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-  }
 
   float windowWidth  = (float)m_width / 2;
   float windowHeight = (float)m_height / 2;

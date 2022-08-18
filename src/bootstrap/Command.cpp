@@ -66,9 +66,9 @@ void CommandBuffer::bindVertexBuffers(u32 firstBinding, u32 bindingCount,
                          pOffsets);
 }
 
-void CommandBuffer::bindVertexBuffer(VkBuffer* buffer) {
+void CommandBuffer::bindVertexBuffer(VkBuffer buffer) {
   VkDeviceSize offset = 0;
-  bindVertexBuffers(0, 1, buffer, &offset);
+  bindVertexBuffers(0, 1, &buffer, &offset);
 }
 
 void CommandBuffer::bindIndexBuffer(VkBuffer buffer, VkIndexType indexType,

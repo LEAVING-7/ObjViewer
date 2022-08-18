@@ -59,8 +59,6 @@ void ImageView::destroy(VkDevice device) {
   vkDestroyImageView(device, imageView, nullptr);
 }
 
-
-
 void AllocatedBuffer::copyTo(AllocatedBuffer& dstBuffer, VkDevice device,
                              CommandPool pool, VkQueue transferQueue) {
   CommandBuffer stagingCmdBuffer;
@@ -119,6 +117,9 @@ void AllocatedBuffer::transferMemory(BufferAllocator& allocator,
   allocator.munmap(*this);
 }
 
+/*
+  BufferAllocator
+ */
 void BufferAllocator::create(VkPhysicalDevice gpu, VkDevice device,
                              VkInstance instance) {
   VmaAllocatorCreateInfo allocatorCI{
@@ -156,6 +157,9 @@ BufferAllocator::createBuffer(VkBufferCreateInfo*      pInfo,
   assert(result == VK_SUCCESS);
   return ret;
 }
+
+
+
 void BufferAllocator::destroyBuffer(AllocatedBuffer buffer) {
   vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
 }

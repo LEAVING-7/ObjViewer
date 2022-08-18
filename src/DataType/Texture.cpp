@@ -28,7 +28,7 @@ void TextureImage::create(bs::BufferAllocator& allocator,
   };
 
   VmaAllocationCreateInfo stagingBufferAI{
-      .usage = VMA_MEMORY_USAGE_CPU_TO_GPU,
+      .usage = VMA_MEMORY_USAGE_CPU_ONLY,
   };
   bs::AllocatedBuffer stagingBuffer =
       allocator.createBuffer(&stagingBufferCI, &stagingBufferAI);
