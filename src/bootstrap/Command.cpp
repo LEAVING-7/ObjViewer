@@ -111,12 +111,12 @@ void CommandBuffer::bindDescriptorSet(VkPipelineBindPoint bindPoint,
   vkCmdBindDescriptorSets(cmdBuffer, bindPoint, layout, firstSet, setCount,
                           pDescriptorSets, dynamicOffsetCount, pDynamicOffsets);
 }
-void CommandBuffer::bindDescriptorSetNoDynamic(VkPipelineBindPoint bindPoint,
-                                  VkPipelineLayout layout, u32 firstSet,
-                                  u32              setCount,
-                                  VkDescriptorSet* pDescriptorSets) {
-    return bindDescriptorSet(bindPoint, layout, firstSet, setCount,
-                             pDescriptorSets, 0, nullptr);
-  }
+void CommandBuffer::bindDescriptorSetNoDynamic(
+    VkPipelineBindPoint bindPoint, VkPipelineLayout layout, u32 firstSet,
+    u32 setCount, VkDescriptorSet* pDescriptorSets) {
+  return bindDescriptorSet(bindPoint, layout, firstSet, setCount,
+                           pDescriptorSets, 0, nullptr);
+}
+
 
 } // namespace myvk::bs

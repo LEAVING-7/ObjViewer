@@ -26,8 +26,16 @@ VertexInputDescription Vertex::GetDescription() {
       .offset   = offsetof(Vertex, color),
   };
 
+  VkVertexInputAttributeDescription texCoordAttr{
+      .location = 2,
+      .binding  = 0,
+      .format   = VK_FORMAT_R32G32_SFLOAT,
+      .offset   = offsetof(Vertex, texCoord),
+  };
+
   ret.attributes.push_back(posAttr);
   ret.attributes.push_back(colorAttr);
+  ret.attributes.push_back(texCoordAttr);
   return ret;
 }
 

@@ -34,6 +34,10 @@ public:
     return glfwGetKey(m_window, key);
   }
 
+  bool getKeyPressed(int key) {
+    return GLFW_PRESS == getKey(key);
+  }
+
   MainWindow& setErrorCallback(GLFWerrorfun callback =
                                    [](int error_code, const char* description) {
                                      LOG_INFO("[glfw error: {}]: {}",
@@ -45,9 +49,7 @@ public:
   MainWindow& setCursorPosCallback(GLFWcursorposfun callback);
   MainWindow& setFramebufferSizeCallback(GLFWframebuffersizefun callback);
   MainWindow& setInputMode(int mode, int input);
-  
-  
-  
-  void updateCamera(data::Camera &cam);
+
+  void updateCamera(data::Camera& cam);
 };
 } // namespace myvk::gui

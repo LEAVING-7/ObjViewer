@@ -4,9 +4,8 @@
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
-#define LOG_VEC3(vec) LOG_INFO(#vec ": [{:.4}, {:.4}, {:.4}]", vec.x, vec.y, vec.z);
-
-
+#define LOG_VEC3(vec)                                                          \
+  LOG_INFO(#vec ": [{:.4}, {:.4}, {:.4}]", vec.x, vec.y, vec.z);
 
 namespace myvk::data {
 struct Camera {
@@ -23,7 +22,7 @@ struct Camera {
   glm::vec3 m_front{0.f, 0.f, 1.f};
   glm::vec3 m_up{0, 1, 0};
   glm::vec3 m_right{1, 0, 0};
-  glm::vec3 m_worldUp{0, -1, 0};
+  glm::vec3 m_worldUp{0, 1, 0};
 
   float m_yam{0.f}, m_pitch{0.f};
 
@@ -34,15 +33,21 @@ struct Camera {
   };
 
   Camera(glm::vec3 position, glm::vec3 front, glm::vec3 worldUp)
-      : m_position{position}, m_front{front}, m_worldUp{worldUp} {
-  }
+      : m_position{position}, m_front{front}, m_worldUp{worldUp} {}
 
   glm::mat4 viewMat() {
     return glm::lookAtRH(m_position, m_position + m_front, m_up);
   }
 
+  glm::mat4 projMat(float aspect) {
+    glm::mat4 ret = glm::perspective(m_zoom, aspect, 0.1f, 100.f);
+    ret[1][1] *= -1;
+    return ret;
+  }
+
   void move(MoveDirection dir, float time = 1.f);
   void processMouseMovement(float xOffset, float yOffset);
+
 private:
   void updateCameraVectors();
 };

@@ -2,21 +2,17 @@
 #include "bootstrap/Swapchain.hpp"
 
 namespace myvk::bs {
-void Framebuffer::FrameData::create(VkDevice device, u32 graphicIndex,
-                                    u32 transferIndex) {
+void Framebuffer::FrameData::create(VkDevice device, u32 graphicIndex) {
   create1(device, presentSemaphore, renderSemaphore);
   // create signaled fence
   renderFence.createSignaled(device);
   mainCmdPool.create(device, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
                      graphicIndex);
-  stagingCmdPool.create(device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-                        transferIndex);
   cmdBuffer.alloc(device, mainCmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 }
 
 void Framebuffer::FrameData::destroy(VkDevice device) {
   cmdBuffer.free(device, mainCmdPool);
-  stagingCmdPool.destroy(device);
   mainCmdPool.destroy(device);
   destroy1(device, presentSemaphore, renderSemaphore, renderFence);
 }
@@ -28,7 +24,7 @@ void Framebuffer::create(VkDevice device, vkb::Swapchain& swapchain,
                          u32                        graphicIndex, u32 transferIndex) {
 
   for (auto& frame : frameData) {
-    frame.create(device, graphicIndex, transferIndex);
+    frame.create(device, graphicIndex);
   }
 
   VkFramebufferCreateInfo CI{

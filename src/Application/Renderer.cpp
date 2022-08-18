@@ -9,10 +9,10 @@ float g_frameBegin = 0;
 float g_frameEnd   = 0;
 
 const std::vector<data::Vertex> g_vertices = {
-    {{-0.5f, -0.5f, 0.f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.f}, {0.0f, 1.0f, 0.0f}},
-    {{0.5f, 0.5f, 1.f}, {0.0f, 0.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.f}, {1.0f, 1.0f, 1.0f}},
+    {{-0.5f, -0.5f, 0.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.5f, -0.5f, 1.f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, 0.5f, 0.f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+    {{-0.5f, 0.5f, 0.f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
 };
 
 const std::vector<u16> g_indices = {
@@ -20,14 +20,14 @@ const std::vector<u16> g_indices = {
 };
 
 std::vector<data::Vertex> g_axis = {
-    {{0, 0, 0}, {0, 0, 0}}, // original
-    {{3, 0, 0}, {1, 0, 0}}, // x
-    {{0, 3, 0}, {0, 1, 0}}, // y
-    {{0, 0, 3}, {0, 0, 1}}, // z
+    {{0, 0, 0}, {0, 0, 0}, {0, 0}}, // original
+    {{3, 0, 0}, {1, 0, 0}, {0, 0}}, // x
+    {{0, 3, 0}, {0, 1, 0}, {0, 0}}, // y
+    {{0, 0, 3}, {0, 0, 1}, {0, 0}}, // z
 };
 
 const std::vector<u16> g_axisIndices = {
-    1, 0 , 2, 0, 3, 0,
+    1, 0, 2, 0, 3, 0,
 };
 
 struct UniformBufferObject {
@@ -35,22 +35,6 @@ struct UniformBufferObject {
   glm::mat4 view;
   glm::mat4 proj;
 } g_uniformData;
-
-void windowCursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
-  Renderer* renderer = gui::MainWindow::getUserPointer<Renderer*>(window);
-  if (renderer->m_window.getKey(GLFW_KEY_LEFT_ALT) == GLFW_PRESS) {
-    renderer->m_window.setInputMode(GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    return;
-  } else {
-    renderer->m_window.setInputMode(GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-  }
-  float windowWidth  = (float)renderer->m_window.m_width / 2;
-  float windowHeight = (float)renderer->m_window.m_height / 2;
-  xpos -= windowWidth;
-  ypos -= windowHeight;
-  renderer->m_state.camera.processMouseMovement((float)xpos, (float)ypos);
-  glfwSetCursorPos(window, windowWidth, windowHeight);
-}
 
 void windowFramebufferResizeCallback(GLFWwindow* window, int width,
                                      int height) {
@@ -61,6 +45,10 @@ void windowFramebufferResizeCallback(GLFWwindow* window, int width,
 void Renderer::create(Application* app) {
   m_application = app;
   getGraphicQueueAndQueueIndex();
+  m_transientCmdPool.create(*m_application,
+                            VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+                            m_graphicQueueIndex);
+  createTextures();
   createDepthImages();
   createSwapchain();
   createRenderPass(true);
@@ -68,15 +56,15 @@ void Renderer::create(Application* app) {
   createDescriptorSets();
   createDefaultPipeline();
   createFrameBuffer(true);
-
   createMesh();
 }
 
 void Renderer::destroy() {
   vkDeviceWaitIdle(*m_application);
 
-  destroyMesh();
+  m_transientCmdPool.destroy(*m_application);
 
+  destroyMesh();
   destroyFrameBuffer();
   destroyDefaultPipeline();
   destroyDescriptorSets();
@@ -84,6 +72,7 @@ void Renderer::destroy() {
   destroyRenderPass();
   destroySwapchain();
   destroyDepthImages();
+  destroyTextures();
 }
 
 void Renderer::recreateSwapchain() {
@@ -97,7 +86,6 @@ void Renderer::recreateSwapchain() {
 
   destroyFrameBuffer();
   destroyDefaultPipeline();
-  destroyShaders();
   destroyRenderPass();
   destroySwapchain();
   destroyDepthImages();
@@ -107,7 +95,6 @@ void Renderer::recreateSwapchain() {
   createDepthImages();
   createSwapchain();
   createRenderPass(true);
-  createShaders();
   createDefaultPipeline();
   createFrameBuffer(true);
 }
@@ -173,12 +160,10 @@ void Renderer::render() {
                                         VK_SUBPASS_CONTENTS_INLINE);
   currentData.cmdBuffer.bindPipelineGraphic(m_defaultPipeline);
 
-  float time          = glfwGetTime();
   g_uniformData.model = glm::mat4{1};
-
-  g_uniformData.view = m_state.camera.viewMat();
-  g_uniformData.proj = glm::perspective(
-      45.f, m_window.m_width / (float)m_window.m_height, 0.1f, 100.0f);
+  g_uniformData.view  = m_state.camera.viewMat();
+  g_uniformData.proj =
+      m_state.camera.projMat((float)m_window.m_width / m_window.m_height);
 
   m_uniformBuffer.transferMemory(m_application->m_allocator, &g_uniformData,
                                  sizeof(g_uniformData));
@@ -246,7 +231,6 @@ void Renderer::createWindow(VkInstance instance, u32 width, u32 height) {
   m_window.setUserPointer(m_window.m_window, this);
 
   m_window.setErrorCallback()
-      .setCursorPosCallback(windowCursorPosCallback)
       .setFramebufferSizeCallback(windowFramebufferResizeCallback)
       .setKeyCallback(
           [](GLFWwindow* wnd, int key, int scancode, int action, int mods) {
@@ -402,7 +386,7 @@ void Renderer::createFrameBuffer(bool includeDepth) {
   m_frameBuffer.create(*m_application, m_swapchainObj->m_swapchain,
                        m_renderPass, {m_window.m_width, m_window.m_height},
                        m_swapchainObj->m_imageViews, m_depthImageView,
-                       m_graphicQueueIndex, m_transferQueueIndex);
+                       m_graphicQueueIndex, m_graphicQueueIndex);
 }
 
 void Renderer::destroyFrameBuffer() {
@@ -526,8 +510,6 @@ void Renderer::getGraphicQueueAndQueueIndex() {
 
 void Renderer::createMesh() {
 
-  auto& currentFrame = m_frameBuffer.currentFrameData();
-
   VkBufferCreateInfo vertexBufferCI{
       .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
       .pNext       = nullptr,
@@ -544,6 +526,7 @@ void Renderer::createMesh() {
 
   AllocatedBuffer stagingBuffer =
       allocator.createBuffer(&vertexBufferCI, &vertexAI);
+
   stagingBuffer.transferMemory(allocator, (void*)(g_vertices.data()),
                                stagingBuffer.size);
 
@@ -559,8 +542,8 @@ void Renderer::createMesh() {
   vertexAI.usage = VMA_MEMORY_USAGE_GPU_ONLY;
   m_testMesh     = allocator.createBuffer(&dstBufferCI, &vertexAI);
 
-  stagingBuffer.copyTo(m_testMesh, *m_application, currentFrame.stagingCmdPool,
-                       m_transferQueue);
+  stagingBuffer.copyTo(m_testMesh, *m_application, m_transientCmdPool,
+                       m_graphicQueue);
   allocator.destroyBuffer(stagingBuffer);
 
   VkBufferCreateInfo indexCI{
@@ -617,21 +600,27 @@ void Renderer::createDescriptorSets() {
   auto& allocator = m_application->m_allocator;
 
   DescriptorPoolSizeList sizeList;
-  sizeList.add(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-               m_swapchainObj->getImageCount());
+  sizeList
+      .add(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_swapchainObj->getImageCount())
+      .add(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+           m_swapchainObj->getImageCount());
 
   m_descPool.create(*m_application,
-                    VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 8,
-                    sizeList.list);
+                    VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+                    m_swapchainObj->getImageCount(), sizeList.list);
 
   DescriptorSetLayoutBindingList bindingList;
-  bindingList.add(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-                  VK_SHADER_STAGE_VERTEX_BIT);
+  bindingList
+      .add(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT)
+      .add(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+           VK_SHADER_STAGE_FRAGMENT_BIT);
+
   m_uniformLayout.create(*m_application, bindingList.bindings);
 
-  std::vector<VkDescriptorSetLayout> layouts(m_swapchainObj->getImageCount(),
-                                             m_uniformLayout.setLayout);
-  m_uniformSets = m_descPool.allocSets(*m_application, layouts);
+  std::vector<VkDescriptorSetLayout> mvpLayouts(m_swapchainObj->getImageCount(),
+                                                m_uniformLayout.setLayout);
+
+  m_uniformSets = m_descPool.allocSets(*m_application, mvpLayouts);
 
   VkBufferCreateInfo uniformBufferCI{
       .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -642,13 +631,18 @@ void Renderer::createDescriptorSets() {
       .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
   };
   VmaAllocationCreateInfo uniformBufferAI{.usage = VMA_MEMORY_USAGE_CPU_TO_GPU};
-
   m_uniformBuffer = allocator.createBuffer(&uniformBufferCI, &uniformBufferAI);
 
   VkDescriptorBufferInfo uniformBufferInfo{
       .buffer = m_uniformBuffer.buffer,
       .offset = 0,
       .range  = VK_WHOLE_SIZE,
+  };
+
+  VkDescriptorImageInfo imageInfo{
+      .sampler     = m_testTextureSampler.sampler,
+      .imageView   = m_testTextureImageView.imageView,
+      .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
   };
 
   for (u32 i = 0; i < m_uniformSets.size(); ++i) {
@@ -663,9 +657,19 @@ void Renderer::createDescriptorSets() {
         .pBufferInfo     = &uniformBufferInfo,
     };
     vkUpdateDescriptorSets(*m_application, 1, &writeSet, 0, nullptr);
+    VkWriteDescriptorSet samplerWriteSet{
+        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .pNext           = nullptr,
+        .dstSet          = m_uniformSets[i],
+        .dstBinding      = bindingList.bindings[1].binding,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .pImageInfo      = &imageInfo,
+    };
+    vkUpdateDescriptorSets(*m_application, 1, &samplerWriteSet, 0, nullptr);
   }
 }
-
 
 void Renderer::destroyDescriptorSets() {
   m_application->m_allocator.destroyBuffer(m_uniformBuffer);
@@ -673,5 +677,32 @@ void Renderer::destroyDescriptorSets() {
   m_uniformLayout.destroy(*m_application);
   m_descPool.freeSets(*m_application, m_uniformSets);
   m_descPool.destroy(*m_application);
+}
+
+void Renderer::createTextures() {
+  m_testTexture.create(m_application->m_allocator, m_transientCmdPool,
+                       "assets/test_texture.jpg", m_graphicQueue,
+                       *m_application);
+
+  m_testTextureImageView.create(
+      *m_application, m_testTexture.image.image, VK_IMAGE_VIEW_TYPE_2D,
+      VK_FORMAT_R8G8B8A8_SRGB, {},
+      bs::defaultImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT));
+
+  auto maxAnisotropy =
+      m_application->m_deviceObj->m_gpu.properties.limits.maxSamplerAnisotropy;
+
+  m_testTextureSampler.create(
+      *m_application, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+      VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT,
+      VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f,
+      VK_FALSE, maxAnisotropy, VK_FALSE, VK_COMPARE_OP_ALWAYS, 0.f, 0.f,
+      VK_BORDER_COLOR_INT_OPAQUE_BLACK, VK_FALSE);
+}
+
+void Renderer::destroyTextures() {
+  m_testTextureSampler.destroy(*m_application);
+  m_testTextureImageView.destroy(*m_application);
+  m_testTexture.destroy(m_application->m_allocator);
 }
 } // namespace myvk::bs

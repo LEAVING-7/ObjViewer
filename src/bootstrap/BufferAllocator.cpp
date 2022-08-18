@@ -1,6 +1,66 @@
 #include "bootstrap/BufferAllocator.hpp"
 
 namespace myvk::bs {
+
+void Sampler::create(VkDevice device, VkFilter magFilter, VkFilter minFilter,
+                     VkSamplerMipmapMode  mipmapMode,
+                     VkSamplerAddressMode addressModeU,
+                     VkSamplerAddressMode addressModeV,
+                     VkSamplerAddressMode addressModeW, float mipLodBias,
+                     VkBool32 anisotropyEnable, float maxAnisotropy,
+                     VkBool32 compareEnable, VkCompareOp compareOp,
+                     float minLod, float maxLod, VkBorderColor borderColor,
+                     VkBool32 unnormalizedCoordinates) {
+  VkSamplerCreateInfo CI{
+      .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+      .pNext                   = nullptr,
+      .flags                   = 0,
+      .magFilter               = magFilter,
+      .minFilter               = minFilter,
+      .mipmapMode              = mipmapMode,
+      .addressModeU            = addressModeU,
+      .addressModeV            = addressModeV,
+      .addressModeW            = addressModeW,
+      .mipLodBias              = mipLodBias,
+      .anisotropyEnable        = anisotropyEnable,
+      .maxAnisotropy           = maxAnisotropy,
+      .compareEnable           = compareEnable,
+      .compareOp               = compareOp,
+      .minLod                  = minLod,
+      .maxLod                  = maxLod,
+      .borderColor             = borderColor,
+      .unnormalizedCoordinates = unnormalizedCoordinates,
+  };
+  auto result = vkCreateSampler(device, &CI, nullptr, &sampler);
+  assert(result == VK_SUCCESS);
+}
+void Sampler::destroy(VkDevice device) {
+  vkDestroySampler(device, sampler, nullptr);
+}
+
+void ImageView::create(VkDevice device, VkImage image, VkImageViewType viewType,
+                       VkFormat format, VkComponentMapping components,
+                       VkImageSubresourceRange range) {
+  VkImageViewCreateInfo CI{
+      .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      .pNext            = nullptr,
+      .flags            = 0,
+      .image            = image,
+      .viewType         = viewType,
+      .format           = format,
+      .components       = components,
+      .subresourceRange = range,
+  };
+  auto result = vkCreateImageView(device, &CI, nullptr, &imageView);
+  assert(result == VK_SUCCESS);
+}
+
+void ImageView::destroy(VkDevice device) {
+  vkDestroyImageView(device, imageView, nullptr);
+}
+
+
+
 void AllocatedBuffer::copyTo(AllocatedBuffer& dstBuffer, VkDevice device,
                              CommandPool pool, VkQueue transferQueue) {
   CommandBuffer stagingCmdBuffer;
@@ -12,9 +72,33 @@ void AllocatedBuffer::copyTo(AllocatedBuffer& dstBuffer, VkDevice device,
       .dstOffset = 0,
       .size      = dstBuffer.size,
   };
+
   stagingCmdBuffer.copyBuffer(this->buffer, dstBuffer.buffer, 1, &copyRegion);
   stagingCmdBuffer.end();
+  VkSubmitInfo submitInfo{
+      .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      .commandBufferCount = 1,
+      .pCommandBuffers    = &stagingCmdBuffer,
+  };
 
+  vkQueueSubmit(transferQueue, 1, &submitInfo, VK_NULL_HANDLE);
+  vkQueueWaitIdle(transferQueue);
+  stagingCmdBuffer.free(device, pool);
+}
+
+void AllocatedBuffer::copyToImage(AllocatedImage&    dstImage,
+                                  VkImageLayout      dstImageLayout,
+                                  VkBufferImageCopy& copyRegion,
+                                  VkDevice device, CommandPool pool,
+                                  VkQueue transferQueue) {
+  CommandBuffer stagingCmdBuffer;
+  stagingCmdBuffer.alloc(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+  stagingCmdBuffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+  stagingCmdBuffer.copyBufferToImage(this->buffer, dstImage.image,
+                                     dstImageLayout, 1, &copyRegion);
+
+  stagingCmdBuffer.end();
   VkSubmitInfo submitInfo{
       .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .commandBufferCount = 1,

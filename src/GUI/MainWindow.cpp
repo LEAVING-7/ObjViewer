@@ -82,23 +82,40 @@ MainWindow& MainWindow::setInputMode(int mode, int value) {
 }
 
 void MainWindow::updateCamera(data::Camera& camera) {
-  if (getKey(GLFW_KEY_W) == GLFW_PRESS) {
+  if (getKeyPressed(GLFW_KEY_W)) {
     camera.move(data::Camera::MoveDirection::eForward);
   }
-  if (getKey(GLFW_KEY_A) == GLFW_PRESS) {
+  if (getKeyPressed(GLFW_KEY_A)) {
     camera.move(data::Camera::MoveDirection::eLeft);
   }
-  if (getKey(GLFW_KEY_S) == GLFW_PRESS) {
+  if (getKeyPressed(GLFW_KEY_S)) {
     camera.move(data::Camera::MoveDirection::eBackward);
   }
-  if (getKey(GLFW_KEY_D) == GLFW_PRESS) {
+  if (getKeyPressed(GLFW_KEY_D)) {
     camera.move(data::Camera::MoveDirection::eRight);
   }
-  if (getKey(GLFW_KEY_Q) == GLFW_PRESS) {
+  if (getKeyPressed(GLFW_KEY_Q)) {
     camera.move(data::Camera::MoveDirection::eUp);
   }
-  if (getKey(GLFW_KEY_E) == GLFW_PRESS) {
+  if (getKeyPressed(GLFW_KEY_E)) {
     camera.move(data::Camera::MoveDirection::eDown);
   }
+
+  double xpos, ypos;
+  glfwGetCursorPos(m_window, &xpos, &ypos);
+
+  if (getKeyPressed(GLFW_KEY_LEFT_ALT)) {
+    setInputMode(GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    return;
+  } else {
+    setInputMode(GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+  }
+
+  float windowWidth  = (float)m_width / 2;
+  float windowHeight = (float)m_height / 2;
+  xpos -= windowWidth;
+  ypos -= windowHeight;
+  camera.processMouseMovement((float)xpos, (float)ypos);
+  glfwSetCursorPos(m_window, windowWidth, windowHeight);
 }
 } // namespace myvk::gui

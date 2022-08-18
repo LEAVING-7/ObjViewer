@@ -21,6 +21,7 @@ void operator delete(void* ptr) noexcept {
 std::vector g_instanceExtensionNames{
     VK_KHR_SURFACE_EXTENSION_NAME,
     VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+    VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 };
 
 std::vector g_layerNames{"VK_LAYER_KHRONOS_validation"};

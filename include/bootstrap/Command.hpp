@@ -5,7 +5,7 @@
 namespace myvk::bs {
 struct CommandPool {
   VkCommandPool cmdPool;
-
+  
   void create(VkDevice device, VkCommandPoolCreateFlags flag, u32 queueIndex);
   void destroy(VkDevice device);
 
@@ -43,6 +43,21 @@ struct CommandBuffer {
   void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, u32 regionCount,
                   const VkBufferCopy* pRegions);
 
+  void copyBufferToImage(VkBuffer srcBuffer, VkImage dstImage,
+                         VkImageLayout dstImageLayout, u32 regionCount,
+                         const VkBufferImageCopy* pRegions) {
+    vkCmdCopyBufferToImage(cmdBuffer, srcBuffer, dstImage, dstImageLayout,
+                           regionCount, pRegions);
+  }
+
+  void copyImageToBuffer(VkImage srcImage, VkImageLayout srcImageLayout,
+                         VkBuffer dstBuffer, u32 regionCount,
+                         const VkBufferImageCopy* pRegions) {
+    vkCmdCopyImageToBuffer(cmdBuffer, srcImage, srcImageLayout, dstBuffer,
+                           regionCount, pRegions);
+  }
+
+
   void bindDescriptorSet(VkPipelineBindPoint bindPoint, VkPipelineLayout layout,
                          u32 firstSet, u32 setCount,
                          VkDescriptorSet* pDescriptorSets,
@@ -51,6 +66,31 @@ struct CommandBuffer {
                                   VkPipelineLayout layout, u32 firstSet,
                                   u32              setCount,
                                   VkDescriptorSet* pDescriptorSets);
+
+  void pipelineBarrier(VkPipelineStageFlags         srcStageMask,
+                       VkPipelineStageFlags         dstStageMask,
+                       VkDependencyFlags            dependencyFlags,
+                       u32                          memoryBarrierCount,
+                       const VkMemoryBarrier*       pMemoryBarriers,
+                       u32                          bufferMemoryBarrierCount,
+                       const VkBufferMemoryBarrier* pBufferMemoryBarriers,
+                       u32                          imageMemoryBarrierCount,
+                       const VkImageMemoryBarrier*  pImageMemoryBarriers) {
+    vkCmdPipelineBarrier(cmdBuffer, srcStageMask, dstStageMask, dependencyFlags,
+                         memoryBarrierCount, pMemoryBarriers,
+                         bufferMemoryBarrierCount, pBufferMemoryBarriers,
+                         imageMemoryBarrierCount, pImageMemoryBarriers);
+  }
+
+  void pipelineImageBarriers(VkPipelineStageFlags srcStageMask,
+                             VkPipelineStageFlags dstStageMask,
+                             VkDependencyFlags    dependencyFlags,
+                             u32                  imageMemoryBarrierCount,
+                             const VkImageMemoryBarrier* pImageMemoryBarriers) {
+    return pipelineBarrier(srcStageMask, dstStageMask, dependencyFlags, 0,
+                           nullptr, 0, nullptr, imageMemoryBarrierCount,
+                           pImageMemoryBarriers);
+  }
 
   MYVK_CONVERT_OP(CommandBuffer, cmdBuffer);
   MYVK_ADDRESS_OP(CommandBuffer, cmdBuffer);

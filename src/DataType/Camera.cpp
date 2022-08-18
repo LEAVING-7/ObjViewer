@@ -18,10 +18,10 @@ void Camera::move(MoveDirection dir, float time) {
     m_position += m_right * velocity;
     break;
   case MoveDirection::eUp:
-    m_position -= m_up * velocity;
+    m_position += m_up * velocity;
     break;
   case MoveDirection::eDown:
-    m_position += m_up * velocity;
+    m_position -= m_up * velocity;
     break;
   }
 }
@@ -38,7 +38,7 @@ void Camera::processMouseMovement(float xOffset, float yOffset) {
 
   float degreeYam = glm::radians(m_yam), degreePitch = glm::radians(m_pitch);
   glm::vec3 newFront = {
-      cos(degreeYam) * cos(degreePitch),
+      -cos(degreeYam) * cos(degreePitch),
       sin(degreePitch),
       sin(degreeYam) * cos(degreePitch),
   };
@@ -46,6 +46,7 @@ void Camera::processMouseMovement(float xOffset, float yOffset) {
   m_right = glm::normalize(glm::cross(m_front, m_worldUp));
   m_up    = glm::normalize(glm::cross(m_right, m_front));
 }
+
 void Camera::updateCameraVectors() {
   glm::vec3 front{
       cos(glm::radians(m_yam)) * cos(glm::radians(m_pitch)),
