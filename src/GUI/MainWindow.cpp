@@ -1,5 +1,7 @@
 #include "GUI/MainWindow.hpp"
 
+using namespace std::chrono_literals;
+
 namespace myvk::gui {
 void MainWindow::create(int width, int height, ccstr title,
                         GLFWmonitor* monitor) {
@@ -81,13 +83,10 @@ MainWindow& MainWindow::setInputMode(int mode, int value) {
   return *this;
 }
 
-void MainWindow::updateCamera(data::Camera& camera) {
+void MainWindow::updateFpsCamera(data::Camera& camera) {
   if (!getAttrib(GLFW_HOVERED)) {
     return;
   }
-  //  else {
-  //   setInputMode(GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-  // }
 
   if (getKeyPressed(GLFW_KEY_W)) {
     camera.move(data::Camera::MoveDirection::eForward);
@@ -108,14 +107,45 @@ void MainWindow::updateCamera(data::Camera& camera) {
     camera.move(data::Camera::MoveDirection::eDown);
   }
 
+  if (getKeyPressed(GLFW_KEY_LEFT_ALT)) {
+    setInputMode(GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    return;
+  } else {
+    setInputMode(GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+  }
+
   double xpos, ypos;
   glfwGetCursorPos(m_window, &xpos, &ypos);
 
-  float windowWidth  = (float)m_width / 2;
-  float windowHeight = (float)m_height / 2;
-  xpos -= windowWidth;
-  ypos -= windowHeight;
-  camera.processMouseMovement((float)xpos, (float)ypos);
+  int windowWidth  = m_width / 2;
+  int windowHeight = m_height / 2;
+
+  camera.processFlyRotation(xpos - (float)windowWidth,
+                            ypos - (float)windowHeight);
   glfwSetCursorPos(m_window, windowWidth, windowHeight);
 }
+
+void MainWindow::updateNormalCamera(data::Camera& cam) {
+
+  double xCurrent0, yCurrent0;
+  getMousePos(xCurrent0, yCurrent0);
+  float xCurrent = (float)xCurrent0, yCurrent = (float)yCurrent0;
+
+  static float xLastPos = xCurrent, yLastPos = yCurrent;
+
+  float xOffset = xCurrent - xLastPos;
+  float yOffset = yCurrent - yLastPos;
+
+  if (getMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+    cam.processArcBallMove(xOffset, yOffset);
+  }
+  if (getMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+    cam.processArcBallRotation(xOffset, yOffset, (float)m_width,
+                               (float)m_height);
+  }
+
+  xLastPos = xCurrent;
+  yLastPos = yCurrent;
+}
+
 } // namespace myvk::gui

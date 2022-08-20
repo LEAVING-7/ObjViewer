@@ -11,7 +11,6 @@
 #include <spdlog/spdlog.h>
 #include <vk_mem_alloc.h>
 
-#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
 #include <glm/ext.hpp>

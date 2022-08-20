@@ -32,6 +32,13 @@ void windowFramebufferResizeCallback(GLFWwindow* window, int width,
   renderer->m_window.m_framebufferResized = true;
 }
 
+void camCallback(GLFWwindow* window, double xoffset, double yoffset) {
+  Renderer*     renderer = gui::MainWindow::getUserPointer<Renderer*>(window);
+  data::Camera& cam      = renderer->m_state.camera;
+  LOG_INFO("x: {} y: {}", xoffset, yoffset);
+  cam.processArcBallZoom(yoffset);
+}
+
 void Renderer::create(Application* app) {
   m_application = app;
   getGraphicQueueAndQueueIndex();
@@ -116,7 +123,8 @@ void Renderer::render() {
     return;
   }
 
-  m_window.updateCamera(m_state.camera);
+  // m_window.updateFpsCamera(m_state.camera);
+  m_window.updateNormalCamera(m_state.camera);
 
   currentData.renderFence.reset(*m_application);
   VkClearValue colorClear{
@@ -224,7 +232,8 @@ void Renderer::createWindow(VkInstance instance, u32 width, u32 height) {
               glfwSetWindowShouldClose(wnd, GLFW_TRUE);
             }
           });
-      // .setInputMode(GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetScrollCallback(m_window.m_window, camCallback);
+  // .setInputMode(GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 void Renderer::destroyWindow(VkInstance instance) {
   vkDestroySurfaceKHR(instance, m_surface, nullptr);
@@ -483,7 +492,7 @@ void Renderer::getGraphicQueueAndQueueIndex() {
 
 void Renderer::createMesh() {
   BufferAllocator& allocator = m_application->m_allocator;
-  m_testModel          = data::ObjModel("assets/lost_empire/lost_empire.obj");
+  m_testModel = data::ObjModel("assets/space_shuttle/space-shuttle.obj");
   m_testModelVertexBuf = m_testModel.allocateVertices(allocator);
   m_testModelIndexBuf  = m_testModel.allocateIndices(allocator);
 
@@ -492,6 +501,7 @@ void Renderer::createMesh() {
   g_axisIndexBuf =
       allocator.createBuffer(g_axisIndices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                              VMA_MEMORY_USAGE_CPU_TO_GPU);
+  LOG_INFO("{} {}", m_testModel.indices.size(), m_testModel.vertices.size());
 }
 
 void Renderer::destroyMesh() {
@@ -588,7 +598,7 @@ void Renderer::destroyDescriptorSets() {
 
 void Renderer::createTextures() {
   m_testTexture.create(m_application->m_allocator, m_transientCmdPool,
-                       "assets/lost_empire/lost_empire-RGBA.png",
+                       "assets/space_shuttle/ShuttleDiffuseMap.jpg",
                        m_graphicQueue, *m_application);
 
   m_testTextureImageView.create(

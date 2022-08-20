@@ -18,37 +18,42 @@ struct Camera {
     eDown,
   };
 
-  glm::vec3 m_position{0.f, 0.f, 2.f};
-  glm::vec3 m_front{0.f, 0.f, 1.f};
+  glm::vec3 m_eye{0, 0, 5};
+  glm::vec3 m_lookAt{0, 0, 0};
   glm::vec3 m_up{0, 1, 0};
-  glm::vec3 m_right{1, 0, 0};
-  glm::vec3 m_worldUp{0, 1, 0};
 
   float m_yam{0.f}, m_pitch{0.f};
 
-  float m_movementSpeed{2.5f}, m_mouseSensitivity{.1f}, m_zoom{45.f};
+  float m_moveScale{1.0f}, m_mouseSensitivity{.05f}, m_zoom{45.f};
 
-  Camera() {
-    updateCameraVectors();
-  };
+  Camera() {}
 
-  Camera(glm::vec3 position, glm::vec3 front, glm::vec3 worldUp)
-      : m_position{position}, m_front{front}, m_worldUp{worldUp} {}
+  Camera(glm::vec3 eye, glm::vec3 lookAt, glm::vec3 up)
+      : m_eye{eye}, m_lookAt{lookAt}, m_up{up} {};
 
   glm::mat4 viewMat() {
-    return glm::lookAtRH(m_position, m_position + m_front, m_up);
+    return glm::lookAtRH(m_eye, m_lookAt, m_up);
+  }
+  glm::vec3 front() {
+    return glm::normalize(m_lookAt - m_eye);
+  }
+  glm::vec3 right() {
+    return (glm::cross(front(), m_up));
   }
 
   glm::mat4 projMat(float aspect) {
-    glm::mat4 ret = glm::perspective(m_zoom, aspect, 0.1f, 100.f);
+    glm::mat4 ret = glm::perspective(m_zoom, aspect, 0.1f, 10000.f);
     ret[1][1] *= -1;
     return ret;
   }
 
   void move(MoveDirection dir, float time = 1.f);
-  void processMouseMovement(float xOffset, float yOffset);
 
-private:
-  void updateCameraVectors();
+  void processFlyRotation(float xOffset, float yOffset);
+
+  void processArcBallRotation(float xOffset, float yOffset, float viewportW,
+                              float viewportH);
+  void processArcBallZoom(float offset);
+  void processArcBallMove(float xOffset, float yOffset);
 };
 }; // namespace myvk::data

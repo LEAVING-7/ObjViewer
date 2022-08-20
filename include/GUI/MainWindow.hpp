@@ -38,6 +38,19 @@ public:
     return GLFW_PRESS == getKey(key);
   }
 
+  
+  void getMousePos(double& outX, double& outY) {
+    glfwGetCursorPos(m_window, &outX, &outY);
+  }
+
+  int getMouseButton(int bt) {
+    return glfwGetMouseButton(m_window, bt);
+  }
+
+  bool getMouseButtonPressed(int bt) {
+    return glfwGetMouseButton(m_window, bt);
+  }
+
   bool getAttrib(int attribute) {
     return glfwGetWindowAttrib(m_window, attribute);
   }
@@ -54,6 +67,7 @@ public:
   MainWindow& setFramebufferSizeCallback(GLFWframebuffersizefun callback);
   MainWindow& setInputMode(int mode, int input);
 
-  void updateCamera(data::Camera& cam);
+  void updateFpsCamera(data::Camera& cam);
+  void updateNormalCamera(data::Camera& cam);
 };
 } // namespace myvk::gui

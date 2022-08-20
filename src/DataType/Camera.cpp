@@ -1,40 +1,42 @@
 #include "DataType/Camera.hpp"
 
+#include <numbers>
 namespace myvk::data {
 
 void Camera::move(MoveDirection dir, float time) {
-  float velocity = 0.05f * time;
+  float velocity = 0.1f * time;
   switch (dir) {
   case MoveDirection::eForward:
-    m_position += m_front * velocity;
+    m_eye += front() * velocity;
     break;
   case MoveDirection::eBackward:
-    m_position -= m_front * velocity;
+    m_eye -= front() * velocity;
     break;
   case MoveDirection::eLeft:
-    m_position -= m_right * velocity;
+    m_eye -= right() * velocity;
     break;
   case MoveDirection::eRight:
-    m_position += m_right * velocity;
+    m_eye += right() * velocity;
     break;
   case MoveDirection::eUp:
-    m_position += m_up * velocity;
+    m_eye += m_up * velocity;
     break;
   case MoveDirection::eDown:
-    m_position -= m_up * velocity;
+    m_eye -= m_up * velocity;
     break;
   }
 }
-void Camera::processMouseMovement(float xOffset, float yOffset) {
+
+void Camera::processFlyRotation(float xOffset, float yOffset) {
   xOffset *= m_mouseSensitivity;
   yOffset *= m_mouseSensitivity;
   m_yam -= xOffset;
   m_pitch -= yOffset;
 
   if (m_pitch > 89.9f)
-    m_pitch = 89.f;
+    m_pitch = 89.9f;
   if (m_pitch < -89.9f)
-    m_pitch = -89.f;
+    m_pitch = -89.9f;
 
   float degreeYam = glm::radians(m_yam), degreePitch = glm::radians(m_pitch);
   glm::vec3 newFront = {
@@ -42,22 +44,48 @@ void Camera::processMouseMovement(float xOffset, float yOffset) {
       sin(degreePitch),
       sin(degreeYam) * cos(degreePitch),
   };
-  m_front = glm::normalize(newFront);
-  m_right = glm::normalize(glm::cross(m_front, m_worldUp));
-  m_up    = glm::normalize(glm::cross(m_right, m_front));
+
+  m_lookAt = m_eye + newFront;
 }
 
-void Camera::updateCameraVectors() {
-  glm::vec3 front{
-      cos(glm::radians(m_yam)) * cos(glm::radians(m_pitch)),
-      sin(glm::radians(m_pitch)),
-      sin(glm::radians(m_yam)) * cos(glm::radians(m_pitch)),
-  };
-  m_front = glm::normalize(front);
-  m_right = glm::normalize(glm::cross(front, m_worldUp));
-  m_up    = glm::normalize(glm::cross(m_right, front));
+void Camera::processArcBallRotation(float xOffset, float yOffset,
+                                    float viewportW, float viewportH) {
+  glm::vec4 pos   = {m_eye, 1.f};
+  glm::vec4 pivot = {m_lookAt, 1.f};
+
+  float xAngle = (-xOffset) * (std::numbers::pi * 2 / viewportW);
+  float yAngle = (-yOffset) * (std::numbers::pi / viewportH);
+
+  float cosAngle = glm::dot(front(), {0, 1, 0});
+
+  if (cosAngle * (yOffset > 0.f ? -1.f : 1.f) > 0.99)
+    yAngle = 0;
+
+  glm::mat4x4 rotationMatrixX(1.0f);
+  rotationMatrixX = glm::rotate(rotationMatrixX, xAngle, m_up);
+
+  pos = (rotationMatrixX * (pos - pivot)) + pivot;
+  glm::mat4x4 rotationMatrixY(1.0f);
+  rotationMatrixY         = glm::rotate(rotationMatrixY, yAngle, right());
+  glm::vec3 finalPosition = (rotationMatrixY * (pos - pivot)) + pivot;
+
+  m_eye = finalPosition;
 }
 
+void Camera::processArcBallZoom(float offset) {
+  offset *= m_mouseSensitivity * 10;
+  LOG_VEC3(front());
+  m_eye += front() * offset;
+}
 
+void Camera::processArcBallMove(float xOffset, float yOffset) {
+  xOffset *= -m_mouseSensitivity;
+  yOffset *= m_mouseSensitivity;
+
+  glm::vec3 up     = glm::cross(right(), front());
+  glm::vec3 xyMove = right() * xOffset + up * yOffset;
+  m_eye += xyMove;
+  m_lookAt += xyMove;
+}
 
 } // namespace myvk::data
