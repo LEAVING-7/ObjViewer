@@ -1,12 +1,12 @@
 #pragma once
 
-#include "bootstrap/BufferAllocator.hpp"
-#include "bootstrap/Device.hpp"
-#include "bootstrap/Instance.hpp"
+#include "EasyVK/BufferAllocator.hpp"
+#include "EasyVK/Device.hpp"
+#include "EasyVK/Instance.hpp"
 
 #include "Application/Renderer.hpp"
 
-namespace myvk::bs {
+namespace myvk {
 
 class Application {
 private:
@@ -14,10 +14,10 @@ private:
   static inline std::once_flag               sm_onlyOnce;
 
 public:
-  Instance                  m_instanceObj;
-  std::unique_ptr<Device>   m_deviceObj;
-  std::unique_ptr<Renderer> m_rendererObj;
-  BufferAllocator           m_allocator;
+  ezvk::Instance                m_instanceObj;
+  std::unique_ptr<ezvk::Device> m_deviceObj;
+  std::unique_ptr<Renderer>     m_rendererObj;
+  ezvk::BufferAllocator         m_allocator;
 
 private:
   bool m_isPrepared;
@@ -60,4 +60,4 @@ public:
   }
 };
 
-} // namespace myvk_bs
+} // namespace myvk

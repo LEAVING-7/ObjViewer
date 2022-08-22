@@ -9,15 +9,15 @@
 #include "DataType/Texture.hpp"
 #include "GUI/MainWindow.hpp"
 
-#include "bootstrap/BufferAllocator.hpp"
-#include "bootstrap/Descriptor.hpp"
-#include "bootstrap/FrameBuffer.hpp"
-#include "bootstrap/GraphicPipelineBuilder.hpp"
-#include "bootstrap/Shader.hpp"
-#include "bootstrap/Swapchain.hpp"
-#include "bootstrap/SyncStructures.hpp"
+#include "EasyVK/BufferAllocator.hpp"
+#include "EasyVK/Descriptor.hpp"
+#include "EasyVK/FrameBuffer.hpp"
+#include "EasyVK/GraphicPipelineBuilder.hpp"
+#include "EasyVK/Shader.hpp"
+#include "EasyVK/Swapchain.hpp"
+#include "EasyVK/SyncStructures.hpp"
 
-namespace myvk::bs {
+namespace myvk {
 class Application;
 class Device;
 
@@ -59,7 +59,7 @@ public:
   void getGraphicQueueAndQueueIndex();
 
   void recreateSwapchain();
-  // TODO: remove this later
+
   void createMesh();
   void destroyMesh();
 
@@ -74,44 +74,50 @@ public:
 
   gui::MainWindow m_window;
 
+  VkSampleCountFlagBits m_sampleCount = VK_SAMPLE_COUNT_4_BIT;
+
   VkSurfaceKHR m_surface;
 
-  VkFormat       m_depthImageFormat;
-  AllocatedImage m_depthImage;
-  VkImageView    m_depthImageView;
+  VkFormat             m_depthImageFormat;
+  ezvk::AllocatedImage m_depthImage;
+  VkImageView          m_depthImageView;
+
+  ezvk::AllocatedImage m_resolveImage;
+  VkImageView          m_resolveView;
 
   VkRenderPass m_renderPass;
 
-  Framebuffer m_frameBuffer;
+  ezvk::Framebuffer m_frameBuffer;
 
-  std::unique_ptr<GraphicPipelineBuilder> m_defaultPipelineBuilder;
-  VkPipeline                              m_defaultPipeline;
-  VkPipelineCache                         m_defaultPipelineCache;
-  VkPipelineLayout                        m_defaultPipelineLayout;
+  std::unique_ptr<ezvk::GraphicPipelineBuilder> m_defaultPipelineBuilder;
+  VkPipeline                                    m_defaultPipeline;
+  VkPipelineCache                               m_defaultPipelineCache;
+  VkPipelineLayout                              m_defaultPipelineLayout;
 
-  CommandPool m_transientCmdPool;
+  ezvk::CommandPool m_transientCmdPool;
 
   VkQueue m_graphicQueue;
   u32     m_graphicQueueIndex;
 
-  DescriptorPool               m_descPool;
-  DescriptorSetLayout          m_uniformLayout;
+  ezvk::DescriptorPool         m_descPool;
+  ezvk::DescriptorSetLayout    m_uniformLayout;
   std::vector<VkDescriptorSet> m_uniformSets;
 
   data::TextureImage m_testTexture;
-  ImageView          m_testTextureImageView;
-  Sampler            m_testTextureSampler;
+  ezvk::ImageView    m_testTextureImageView;
+  ezvk::Sampler      m_testTextureSampler;
 
-  data::ObjModel  m_testModel;
-  AllocatedBuffer m_testModelVertexBuf;
-  AllocatedBuffer m_testModelIndexBuf;
+  data::ObjModel        m_testModel;
+  ezvk::AllocatedBuffer m_testModelVertexBuf;
+  ezvk::AllocatedBuffer m_testModelIndexBuf;
 
-  AllocatedBuffer m_uniformBuffer;
+  ezvk::AllocatedBuffer m_uniformBuffer;
+  ezvk::AllocatedBuffer m_lightBuffer;
 
   // private:
-  Application*               m_application;
-  std::unique_ptr<Swapchain> m_swapchainObj;
+  Application*                     m_application;
+  std::unique_ptr<ezvk::Swapchain> m_swapchainObj;
 
-  std::unordered_map<std::string, Shader> m_shaders;
+  std::unordered_map<std::string, ezvk::Shader> m_shaders;
 };
-} // namespace myvk::bs
+} // namespace myvk

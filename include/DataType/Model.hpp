@@ -3,7 +3,7 @@
 #include "pch.hpp"
 
 #include "DataType/Mesh.hpp"
-#include "bootstrap/BufferAllocator.hpp"
+#include "EasyVK/BufferAllocator.hpp"
 namespace myvk::data {
 class ObjModel {
 public:
@@ -19,15 +19,15 @@ public:
   ObjModel& operator=(ObjModel&&)      = default;
   ~ObjModel()                          = default;
 
-  bs::AllocatedBuffer allocateVertices(bs::BufferAllocator& allocator);
-  bs::AllocatedBuffer allocateIndices(bs::BufferAllocator& allocator);
-  bs::AllocatedBuffer
-  allocateVerticesUsingStaging(bs::BufferAllocator& allocator,
-                               bs::CommandPool& cmdPool, VkDevice device,
+   ezvk::AllocatedBuffer allocateVertices( ezvk::BufferAllocator& allocator);
+   ezvk::AllocatedBuffer allocateIndices( ezvk::BufferAllocator& allocator);
+   ezvk::AllocatedBuffer
+  allocateVerticesUsingStaging( ezvk::BufferAllocator& allocator,
+                                ezvk::CommandPool& cmdPool, VkDevice device,
                                VkQueue submitQueue);
-  bs::AllocatedBuffer
-  allocateIndicesUsingStaging(bs::BufferAllocator& allocator,
-                              bs::CommandPool& cmdPool, VkDevice device,
+   ezvk::AllocatedBuffer
+  allocateIndicesUsingStaging( ezvk::BufferAllocator& allocator,
+                               ezvk::CommandPool& cmdPool, VkDevice device,
                               VkQueue submitQueue);
 };
 } // namespace myvk::data

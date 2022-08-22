@@ -1,14 +1,13 @@
 #include "DataType/Texture.hpp"
 
-
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "stb_image.h"
 
 namespace myvk::data {
 
-void TextureImage::create(bs::BufferAllocator& allocator,
-                          bs::CommandPool cmdPool, ccstr filename,
+void TextureImage::create(ezvk::BufferAllocator& allocator,
+                          ezvk::CommandPool cmdPool, ccstr filename,
                           VkQueue transferQueue, VkDevice device) {
   stbi_uc* pixel =
       stbi_load(filename, &width, &height, &channels, STBI_rgb_alpha);
@@ -30,7 +29,7 @@ void TextureImage::create(bs::BufferAllocator& allocator,
   VmaAllocationCreateInfo stagingBufferAI{
       .usage = VMA_MEMORY_USAGE_CPU_ONLY,
   };
-  bs::AllocatedBuffer stagingBuffer =
+  ezvk::AllocatedBuffer stagingBuffer =
       allocator.createBuffer(&stagingBufferCI, &stagingBufferAI);
 
   stagingBuffer.transferMemory(allocator, (void*)(pixel), stagingBuffer.size);
@@ -85,7 +84,7 @@ void TextureImage::create(bs::BufferAllocator& allocator,
   stbi_image_free(pixel);
 }
 
-void TextureImage::destroy(bs::BufferAllocator& allocator) {
+void TextureImage::destroy(ezvk::BufferAllocator& allocator) {
   allocator.destroyImage(image);
 }
 
@@ -94,7 +93,7 @@ void TextureImage::transitionImageLayout(VkCommandPool cmdPool, VkDevice device,
                                          VkImageLayout oldLayout,
                                          VkImageLayout newLayout) {
   // image transition
-  bs::CommandBuffer cmd;
+  ezvk::CommandBuffer cmd;
   cmd.alloc(device, cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
   cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 

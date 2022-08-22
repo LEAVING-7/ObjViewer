@@ -63,32 +63,3 @@ using ccstr = char const*;
     return &value;                                                             \
   }
 
-std::optional<std::vector<u8>> readFromFile(std::string const& filename,
-                                            ccstr              mode);
-
-template <
-    typename... Destroyable,
-    typename = std::void_t<decltype(std::declval<Destroyable...>().destroy())>>
-void destroy(Destroyable&&... destroyList) {
-  (destroyList.destroy(), ...);
-}
-template <
-    typename... Creatable,
-    typename = std::void_t<decltype(std::declval<Creatable...>().create())>>
-void create(Creatable&&... destroyList) {
-  (destroyList.create(), ...);
-}
-
-template <typename FirstArgT, typename... Destroyable>
-void destroy1(FirstArgT&& firstArg, Destroyable&&... destroyList) {
-  (destroyList.destroy(std::forward<FirstArgT>(firstArg)), ...);
-}
-template <typename FirstArgT, typename... Creatable>
-void create1(FirstArgT&& firstArg, Creatable&&... destroyList) {
-  (destroyList.create(std::forward<FirstArgT>(firstArg)), ...);
-}
-
-struct VkResultChecker {
-  VkResultChecker(VkResult result);
-  VkResultChecker& operator=(VkResult result);
-};

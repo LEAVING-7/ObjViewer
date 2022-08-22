@@ -7,8 +7,6 @@ namespace myvk::data {
 struct VertexInputDescription {
   std::vector<VkVertexInputBindingDescription>   bindings;
   std::vector<VkVertexInputAttributeDescription> attributes;
-
-  VkPipelineVertexInputStateCreateFlags flags = 0;
 };
 
 struct Vertex {

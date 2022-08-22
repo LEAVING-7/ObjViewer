@@ -3,7 +3,7 @@
 extern std::vector<ccstr> g_instanceExtensionNames;
 extern std::vector<ccstr> g_layerNames;
 extern std::vector<ccstr> g_deviceExtensionNames;
-namespace myvk::bs {
+namespace myvk {
 
 Application::Application() {}
 
@@ -64,7 +64,7 @@ void Application::initialize() {
   assert(selection.has_value());
   vkb::PhysicalDevice physicalDevice = selection.value();
 
-  m_deviceObj = std::make_unique<Device>();
+  m_deviceObj = std::make_unique< ezvk::Device>();
   m_deviceObj->create(physicalDevice, g_layerNames, g_deviceExtensionNames);
 
   m_allocator.create(getVkPhysicalDevice(), getVkDevice(), getVkInstance());
@@ -91,4 +91,4 @@ bool Application::render() {
   return m_rendererObj->windowShouldClose();
 }
 
-} // namespace myvk::bs
+} // namespace myvk

@@ -3,7 +3,7 @@
 #include <numbers>
 namespace myvk::data {
 
-void Camera::move(MoveDirection dir, float time) {
+void Camera::processFlyMove(MoveDirection dir, float time) {
   float velocity = 0.1f * time;
   switch (dir) {
   case MoveDirection::eForward:
@@ -53,8 +53,8 @@ void Camera::processArcBallRotation(float xOffset, float yOffset,
   glm::vec4 pos   = {m_eye, 1.f};
   glm::vec4 pivot = {m_lookAt, 1.f};
 
-  float xAngle = (-xOffset) * (std::numbers::pi * 2 / viewportW);
-  float yAngle = (-yOffset) * (std::numbers::pi / viewportH);
+  float xAngle = (float) (-xOffset) * (std::numbers::pi * 2 / viewportW);
+  float yAngle = (float) (-yOffset) * (std::numbers::pi / viewportH);
 
   float cosAngle = glm::dot(front(), {0, 1, 0});
 
@@ -73,9 +73,11 @@ void Camera::processArcBallRotation(float xOffset, float yOffset,
 }
 
 void Camera::processArcBallZoom(float offset) {
-  offset *= m_mouseSensitivity * 10;
-  LOG_VEC3(front());
-  m_eye += front() * offset;
+  offset *= m_mouseSensitivity * 50;
+
+  if (glm::length(m_eye - m_lookAt) > offset) {
+    m_eye += front() * offset;
+  } 
 }
 
 void Camera::processArcBallMove(float xOffset, float yOffset) {

@@ -57,29 +57,31 @@ ObjModel::ObjModel(ccstr filename) {
   }
 }
 
-bs::AllocatedBuffer ObjModel::allocateVertices(bs::BufferAllocator& allocator) {
-  bs::AllocatedBuffer ret = allocator.createBuffer(
+ezvk::AllocatedBuffer
+ObjModel::allocateVertices(ezvk::BufferAllocator& allocator) {
+  ezvk::AllocatedBuffer ret = allocator.createBuffer(
       vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
   ret.transferMemory(allocator, (void*)vertices.data(), ret.size);
   return ret;
 }
-bs::AllocatedBuffer ObjModel::allocateIndices(bs::BufferAllocator& allocator) {
-  bs::AllocatedBuffer ret;
+ezvk::AllocatedBuffer
+ObjModel::allocateIndices(ezvk::BufferAllocator& allocator) {
+  ezvk::AllocatedBuffer ret;
   ret = allocator.createBuffer(indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                                VMA_MEMORY_USAGE_CPU_TO_GPU);
   ret.transferMemory(allocator, (void*)indices.data(), ret.size);
   return ret;
 }
 
-bs::AllocatedBuffer
-ObjModel::allocateVerticesUsingStaging(bs::BufferAllocator& allocator,
-                                       bs::CommandPool&     cmdPool,
+ezvk::AllocatedBuffer
+ObjModel::allocateVerticesUsingStaging(ezvk::BufferAllocator& allocator,
+                                       ezvk::CommandPool&     cmdPool,
                                        VkDevice device, VkQueue submitQueue) {
-  bs::AllocatedBuffer stagingBuf = allocator.createBuffer(
+  ezvk::AllocatedBuffer stagingBuf = allocator.createBuffer(
       vertices, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
   stagingBuf.transferMemory(allocator, (void*)vertices.data(), stagingBuf.size);
 
-  bs::AllocatedBuffer retBuffer = allocator.createBuffer(
+  ezvk::AllocatedBuffer retBuffer = allocator.createBuffer(
       vertices,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY);
@@ -88,16 +90,16 @@ ObjModel::allocateVerticesUsingStaging(bs::BufferAllocator& allocator,
   allocator.destroyBuffer(stagingBuf);
   return retBuffer;
 }
-bs::AllocatedBuffer
-ObjModel::allocateIndicesUsingStaging(bs::BufferAllocator& allocator,
-                                      bs::CommandPool& cmdPool, VkDevice device,
-                                      VkQueue submitQueue) {
+ezvk::AllocatedBuffer
+ObjModel::allocateIndicesUsingStaging(ezvk::BufferAllocator& allocator,
+                                      ezvk::CommandPool&     cmdPool,
+                                      VkDevice device, VkQueue submitQueue) {
 
-  bs::AllocatedBuffer stagingBuf = allocator.createBuffer(
+  ezvk::AllocatedBuffer stagingBuf = allocator.createBuffer(
       indices, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
   stagingBuf.transferMemory(allocator, (void*)indices.data(), stagingBuf.size);
 
-  bs::AllocatedBuffer retBuffer = allocator.createBuffer(
+  ezvk::AllocatedBuffer retBuffer = allocator.createBuffer(
       indices,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY);

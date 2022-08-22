@@ -89,22 +89,22 @@ void MainWindow::updateFpsCamera(data::Camera& camera) {
   }
 
   if (getKeyPressed(GLFW_KEY_W)) {
-    camera.move(data::Camera::MoveDirection::eForward);
+    camera.processFlyMove(data::Camera::MoveDirection::eForward);
   }
   if (getKeyPressed(GLFW_KEY_A)) {
-    camera.move(data::Camera::MoveDirection::eLeft);
+    camera.processFlyMove(data::Camera::MoveDirection::eLeft);
   }
   if (getKeyPressed(GLFW_KEY_S)) {
-    camera.move(data::Camera::MoveDirection::eBackward);
+    camera.processFlyMove(data::Camera::MoveDirection::eBackward);
   }
   if (getKeyPressed(GLFW_KEY_D)) {
-    camera.move(data::Camera::MoveDirection::eRight);
+    camera.processFlyMove(data::Camera::MoveDirection::eRight);
   }
   if (getKeyPressed(GLFW_KEY_Q)) {
-    camera.move(data::Camera::MoveDirection::eUp);
+    camera.processFlyMove(data::Camera::MoveDirection::eUp);
   }
   if (getKeyPressed(GLFW_KEY_E)) {
-    camera.move(data::Camera::MoveDirection::eDown);
+    camera.processFlyMove(data::Camera::MoveDirection::eDown);
   }
 
   if (getKeyPressed(GLFW_KEY_LEFT_ALT)) {

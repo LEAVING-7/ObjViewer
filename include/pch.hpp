@@ -1,3 +1,4 @@
+#pragma warning(disable : 4819)
 #pragma once
 #ifdef _WIN32
 #define NOMINMAX
@@ -7,13 +8,14 @@
 #include <vulkan/vulkan.h>
 
 #include <GLFW/glfw3.h>
-#include <VkBootstrap.h>
+
 #include <spdlog/spdlog.h>
 #include <vk_mem_alloc.h>
 
-#include <glm/glm.hpp>
 #include <glm/common.hpp>
 #include <glm/ext.hpp>
+#include <glm/glm.hpp>
+
 
 #include <stb_include.h>
 

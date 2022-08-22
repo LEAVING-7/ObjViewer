@@ -6,11 +6,11 @@
 int allocCnt   = 0;
 int deallocCnt = 0;
 
-double   allocAmount = 0;
-void* operator new(size_t size) {
-  allocAmount += size;
-  ++allocCnt;
-  return malloc(size);
+double allocAmount = 0;
+void*  operator new(size_t size) {
+   allocAmount += size;
+   ++allocCnt;
+   return malloc(size);
 }
 
 void operator delete(void* ptr) noexcept {
@@ -32,7 +32,7 @@ std::vector g_deviceExtensionNames{
 
 int main() {
   {
-    myvk::bs::Application* appObj = myvk::bs::Application::GetInstance();
+    myvk::Application* appObj = myvk::Application::GetInstance();
     appObj->initialize();
     LOG_INFO("initialize successfully");
 
@@ -46,5 +46,6 @@ int main() {
     }
     appObj->deInitialize();
   }
-  LOG_INFO("{} {} Amount: {}", allocCnt, deallocCnt, allocAmount / (1024 * 1024) );
+  LOG_INFO("{} {} Amount: {}", allocCnt, deallocCnt,
+           allocAmount / (1024 * 1024));
 }

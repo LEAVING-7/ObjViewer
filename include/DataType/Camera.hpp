@@ -47,7 +47,7 @@ struct Camera {
     return ret;
   }
 
-  void move(MoveDirection dir, float time = 1.f);
+  void processFlyMove(MoveDirection dir, float time = 1.f);
 
   void processFlyRotation(float xOffset, float yOffset);
 
