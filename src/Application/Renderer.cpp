@@ -135,7 +135,7 @@ void Renderer::render() {
   m_window.updateNormalCamera(m_state.camera);
 
   VkClearValue colorClear{
-      .color = {{0.5f, 0.3f, 0.4f, 1.f}},
+      .color = {{0.f, 0.f, 0.f, 0.f}},
   };
 
   VkClearValue depthClear{
@@ -161,9 +161,9 @@ void Renderer::render() {
   // automatically set cmdBuffer to initial
   currentData.cmdBuffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-  currentData.cmdBuffer.beginRenderPass(&renderPassBI,
-                                        VK_SUBPASS_CONTENTS_INLINE);
-  currentData.cmdBuffer.bindPipelineGraphic(m_defaultPipeline);
+  currentData.cmdBuffer
+      .beginRenderPass(&renderPassBI, VK_SUBPASS_CONTENTS_INLINE)
+      .bindPipelineGraphic(m_defaultPipeline);
 
   g_uniformData.model = glm::mat4{1.f};
   g_uniformData.view  = m_state.camera.viewMat();
@@ -172,18 +172,18 @@ void Renderer::render() {
   m_uniformBuffer.transferMemory(m_application->m_allocator, &g_uniformData,
                                  sizeof(g_uniformData));
 
-  currentData.cmdBuffer.bindDescriptorSetNoDynamic(
-      VK_PIPELINE_BIND_POINT_GRAPHICS, m_defaultPipelineLayout, 0, 1,
-      &m_uniformSets[swapchainImgIdx]);
+  currentData.cmdBuffer
+      .bindDescriptorSetNoDynamic(VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                  m_defaultPipelineLayout, 0, 1,
+                                  &m_uniformSets[swapchainImgIdx])
 
-  currentData.cmdBuffer.bindVertexBuffer(m_testModelVertexBuf.buffer);
-  currentData.cmdBuffer.bindIndexBuffer(m_testModelIndexBuf.buffer,
-                                        VK_INDEX_TYPE_UINT32);
+      .bindVertexBuffer(m_testModelVertexBuf.buffer)
+      .bindIndexBuffer(m_testModelIndexBuf.buffer, VK_INDEX_TYPE_UINT32)
 
-  currentData.cmdBuffer.drawIndexed((u32)m_testModel.indices.size(), 1, 0, 0,
-                                    0);
+      .drawIndexed((u32)m_testModel.indices.size(), 1, 0, 0, 0)
 
-  currentData.cmdBuffer.endRenderPass();
+      .endRenderPass();
+
   currentData.cmdBuffer.end();
 
   VkPipelineStageFlags waitStage =
@@ -455,18 +455,20 @@ void Renderer::destroySwapchain() {
 }
 
 void Renderer::createShaders() {
-  auto vertResult = readFromFile("shaders/main.vert.spv", "rb");
+  auto vertResult = ezvk::readFromFile("shaders/main.vert.spv", "rb");
   assert(vertResult.has_value());
 
-  ezvk::Shader mainVert{"mainVert", VK_SHADER_STAGE_VERTEX_BIT};
-  mainVert.create(*m_application, vertResult.value());
+  ezvk::Shader mainVert;
+  mainVert.create(*m_application, "mainVert", VK_SHADER_STAGE_VERTEX_BIT,
+                  vertResult.value());
   m_shaders[mainVert.m_name] = std::move(mainVert);
 
-  auto fragResult = readFromFile("shaders/main.frag.spv", "rb");
+  auto fragResult = ezvk::readFromFile("shaders/main.frag.spv", "rb");
   assert(fragResult.has_value());
 
-  ezvk::Shader mainFrag{"mainFrag", VK_SHADER_STAGE_FRAGMENT_BIT};
-  mainFrag.create(*m_application, fragResult.value());
+  ezvk::Shader mainFrag;
+  mainFrag.create(*m_application, "mainFrag", VK_SHADER_STAGE_FRAGMENT_BIT,
+                  fragResult.value());
   m_shaders[mainFrag.m_name] = std::move(mainFrag);
 }
 

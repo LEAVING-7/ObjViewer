@@ -135,7 +135,7 @@ void TextureImage::transitionImageLayout(VkCommandPool cmdPool, VkDevice device,
     exit(-1);
   }
 
-  cmd.pipelineImageBarriers(srcStage, dstStage, 0, 1, &barrier);
+  cmd.pipelineImageBarrier(srcStage, dstStage, 0, 1, &barrier);
   cmd.end();
 
   VkSubmitInfo submitInfo{

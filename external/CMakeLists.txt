@@ -8,8 +8,14 @@ target_include_directories(stbImage INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/stb)
 add_library(tinyobjloader tinyobjloader/tiny_obj_loader.cc)
 target_include_directories(tinyobjloader PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tinyobjloader)
 
+# add_library(cgltf)
+# target_sources(cgltf PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/cgltf/cgltf.cc)
+# target_include_directories(cgltf PUBLIC ${CMAKE_CURRENT_SOUCE_DIR}/cgltf)
+
 add_subdirectory(spdlog)
 
 add_subdirectory(glm)
 
 add_subdirectory(EasyVK)
+
+add_subdirectory(assimp)

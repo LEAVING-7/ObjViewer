@@ -12,7 +12,7 @@
 #include "EasyVK/BufferAllocator.hpp"
 #include "EasyVK/Descriptor.hpp"
 #include "EasyVK/FrameBuffer.hpp"
-#include "EasyVK/GraphicPipelineBuilder.hpp"
+#include "EasyVK/PipelineBuilder.hpp"
 #include "EasyVK/Shader.hpp"
 #include "EasyVK/Swapchain.hpp"
 #include "EasyVK/SyncStructures.hpp"

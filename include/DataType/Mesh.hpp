@@ -24,7 +24,7 @@ struct Vertex {
       return pos == other.pos && color == other.color && uv == other.uv;
   }
 };
-
+  
 } // namespace myvk::data
 
 // data::Vertex hash support

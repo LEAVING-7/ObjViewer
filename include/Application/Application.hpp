@@ -40,7 +40,7 @@ public:
   void deInitialize();
 
   VkInstance getVkInstance() {
-    return m_instanceObj.m_instance.instance;
+    return m_instanceObj;
   }
   VkDevice getVkDevice() {
     return m_deviceObj->m_device.device;

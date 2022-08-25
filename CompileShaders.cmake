@@ -5,14 +5,13 @@ function(compile_shaders)
     "${PROJECT_SOURCE_DIR}/shaders/*.vert"
     "${PROJECT_SOURCE_DIR}/shaders/*.comp"    
   )
-  message(STATUS ${GLSL_SOURCE_FILES})
   foreach(GLSL ${GLSL_SOURCE_FILES})
-    message(STATUS "Building shader")
+    message(STATUS "Building shader\n")
     get_filename_component(FILE_NAME ${GLSL} NAME)
     set(SPIRV ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders/${FILE_NAME}.spv)
     add_custom_command(
       OUTPUT ${SPIRV}
-      COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV}
+      COMMAND ${GLSL_VALIDATOR} --target-env vulkan1.2 ${GLSL} -o ${SPIRV}
     )
     list(APPEND SPIRV_BINARY_FILES ${SPIRV})
   endforeach(GLSL)

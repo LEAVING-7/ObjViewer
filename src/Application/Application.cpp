@@ -54,7 +54,7 @@ void Application::initialize() {
   m_rendererObj = std::make_unique<Renderer>();
   m_rendererObj->createWindow(m_instanceObj);
 
-  vkb::PhysicalDeviceSelector selector{m_instanceObj.m_instance,
+  vkb::PhysicalDeviceSelector selector{m_instanceObj,
                                        m_rendererObj->m_surface};
 
   auto selection = selector.set_minimum_version(1, 1)
@@ -65,7 +65,7 @@ void Application::initialize() {
   vkb::PhysicalDevice physicalDevice = selection.value();
 
   m_deviceObj = std::make_unique< ezvk::Device>();
-  m_deviceObj->create(physicalDevice, g_layerNames, g_deviceExtensionNames);
+  m_deviceObj->create(physicalDevice);
 
   m_allocator.create(getVkPhysicalDevice(), getVkDevice(), getVkInstance());
   m_rendererObj->create(this);
