@@ -8,9 +8,7 @@
 #include "EasyVK/BufferAllocator.hpp"
 namespace myvk::data {
 
-struct Vertex {
-  
-};
+
 
 class ObjModel {
 public:
