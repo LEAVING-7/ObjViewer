@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 namespace myvk::data {
+
 ObjModel::ObjModel(ccstr filename) {
   using namespace tinyobj;
   attrib_t                attrib;
@@ -45,7 +46,6 @@ ObjModel::ObjModel(ccstr filename) {
             attrib.normals[3 * index.normal_index + 2],
         };
 
-      vertex.color = {1.f, 1.f, 1.f};
 
       if (uniqueVertices.count(vertex) == 0) {
         uniqueVertices[vertex] = static_cast<u32>(vertices.size());
@@ -109,4 +109,44 @@ ObjModel::allocateIndicesUsingStaging(ezvk::BufferAllocator& allocator,
   allocator.destroyBuffer(stagingBuf);
   return retBuffer;
 }
+
+// VertexInputDescription Vertex::GetInputDescription() {
+//   VertexInputDescription ret;
+
+//   VkVertexInputBindingDescription binding{
+//       .binding   = 0,
+//       .stride    = sizeof(Vertex),
+//       .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+//   };
+
+//   ret.bindings.push_back(binding);
+
+//   VkVertexInputAttributeDescription posAttr{
+//       .location = 0,
+//       .binding  = 0,
+//       .format   = VK_FORMAT_R32G32B32_SFLOAT,
+//       .offset   = offsetof(Vertex, pos),
+//   };
+
+//   VkVertexInputAttributeDescription normAttr{
+//       .location = 1,
+//       .binding  = 0,
+//       .format   = VK_FORMAT_R32G32B32_SFLOAT,
+//       .offset   = offsetof(Vertex, norm),
+//   };
+
+//   VkVertexInputAttributeDescription uvAttr{
+//       .location = 2,
+//       .binding  = 0,
+//       .format   = VK_FORMAT_R32G32_SFLOAT,
+//       .offset   = offsetof(Vertex, uv),
+//   };
+
+//   ret.attributes.push_back(posAttr);
+//   ret.attributes.push_back(normAttr);
+//   ret.attributes.push_back(uvAttr);
+//   return ret;
+// }
+
+
 } // namespace myvk::data

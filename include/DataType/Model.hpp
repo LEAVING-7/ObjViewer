@@ -2,13 +2,32 @@
 #include "common.hpp"
 #include "pch.hpp"
 
-#include "assimp/ObjMaterial.h"
-
 #include "DataType/Mesh.hpp"
+#include "DataType/Texture.hpp"
 #include "EasyVK/BufferAllocator.hpp"
+
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+
 namespace myvk::data {
+// struct VertexInputDescription {
+//   std::vector<VkVertexInputBindingDescription>   bindings;
+//   std::vector<VkVertexInputAttributeDescription> attributes;
+// };
+// struct Vertex {
+//   glm::vec3 pos;
+//   glm::vec3 norm;
+//   glm::vec2 uv;
 
+//   static VertexInputDescription GetInputDescription();
+// };
 
+// struct Mesh {
+//   std::vector<Vertex>       vertices;
+//   std::vector<u32>          indices;
+//   std::vector<TextureImage> textures;
+// };
 
 class ObjModel {
 public:
@@ -32,11 +51,20 @@ public:
                               VkQueue submitQueue);
 };
 
-class Model {
+// class Model {
+//   std::vector<Mesh> meshes;
+//   std::string       directory;
+//   Model() = default;
+//   Model(ccstr path);
+//   ~Model() = default;
 
-  Model() = default;
-  Model(ccstr path);
-  ~Model() = default;
-};
+//   void loadModel();
+// };
+
+// class ModelLoader {
+//   const aiScene* scene;
+//   std::string    path;
+//   void create(std::string path, )
+// };
 
 } // namespace myvk::data

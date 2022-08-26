@@ -29,7 +29,6 @@ std::vector g_layerNames{"VK_LAYER_KHRONOS_validation"};
 std::vector g_deviceExtensionNames{
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
-
 int main() {
   {
     myvk::Application* appObj = myvk::Application::GetInstance();

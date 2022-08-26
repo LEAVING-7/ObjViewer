@@ -13,6 +13,8 @@ compile_shaders()
 
 add_executable(ObjViewer)
 
+add_subdirectory(test)
+
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src              TARGET_SRC)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/GUI          GUI_SRC)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/DataType     DATA_TYPE_SRC)
@@ -23,10 +25,8 @@ target_include_directories(ObjViewer PUBLIC include ${Vulkan_INCLUDE_DIR})
 target_link_libraries(ObjViewer PUBLIC ${Vulkan_LIBRARY} 
                         spdlog::spdlog glfw3 
                         glm tinyobjloader
-                        EasyVK assimp
+                        EasyVK assimp stbImage
                     )
-target_link_libraries(ObjViewer PRIVATE stbImage)
-
 target_precompile_headers(ObjViewer PRIVATE include/pch.hpp)
 
 
