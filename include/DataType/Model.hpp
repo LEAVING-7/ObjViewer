@@ -5,12 +5,8 @@
 #include "assimp/ObjMaterial.h"
 
 #include "DataType/Mesh.hpp"
-#include "EasyVK/BufferAllocator.hpp"
+#include "EasyVK/Allocator.hpp"
 namespace myvk::data {
-
-struct Vertex {
-  
-};
 
 class ObjModel {
 public:
@@ -22,16 +18,16 @@ public:
   ObjModel()  = default;
   ~ObjModel() = default;
 
-  ezvk::AllocatedBuffer allocateVertices(ezvk::BufferAllocator& allocator);
-  ezvk::AllocatedBuffer allocateIndices(ezvk::BufferAllocator& allocator);
-  ezvk::AllocatedBuffer
-  allocateVerticesUsingStaging(ezvk::BufferAllocator& allocator,
-                               ezvk::CommandPool& cmdPool, VkDevice device,
-                               VkQueue submitQueue);
-  ezvk::AllocatedBuffer
-  allocateIndicesUsingStaging(ezvk::BufferAllocator& allocator,
-                              ezvk::CommandPool& cmdPool, VkDevice device,
-                              VkQueue submitQueue);
+  ezvk::AllocatedBuffer allocateVertices(ezvk::Allocator& allocator);
+  ezvk::AllocatedBuffer allocateIndices(ezvk::Allocator& allocator);
+  ezvk::AllocatedBuffer allocateVerticesUsingStaging(ezvk::Allocator& allocator,
+                                                     ezvk::CommandPool& cmdPool,
+                                                     VkDevice           device,
+                                                     VkQueue submitQueue);
+  ezvk::AllocatedBuffer allocateIndicesUsingStaging(ezvk::Allocator& allocator,
+                                                    ezvk::CommandPool& cmdPool,
+                                                    VkDevice           device,
+                                                    VkQueue submitQueue);
 };
 
 class Model {

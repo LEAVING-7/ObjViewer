@@ -9,7 +9,7 @@
 #include "DataType/Texture.hpp"
 #include "GUI/MainWindow.hpp"
 
-#include "EasyVK/BufferAllocator.hpp"
+#include "EasyVK/Allocator.hpp"
 #include "EasyVK/Descriptor.hpp"
 #include "EasyVK/FrameBuffer.hpp"
 #include "EasyVK/PipelineBuilder.hpp"
@@ -103,9 +103,13 @@ public:
   ezvk::DescriptorSetLayout    m_uniformLayout;
   std::vector<VkDescriptorSet> m_uniformSets;
 
-  data::TextureImage m_testTexture;
-  ezvk::ImageView    m_testTextureImageView;
-  ezvk::Sampler      m_testTextureSampler;
+  data::TextureImage m_testDiffuse;
+  ezvk::ImageView    m_testDiffuseImageView;
+  ezvk::Sampler      m_testDiffuseSampler;
+  
+  data::TextureImage m_testSpec;
+  ezvk::ImageView    m_testSpecImageView;
+  ezvk::Sampler      m_testSpecSampler;
 
   data::ObjModel        m_testModel;
   ezvk::AllocatedBuffer m_testModelVertexBuf;

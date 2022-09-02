@@ -4,11 +4,6 @@ extern std::vector<ccstr> g_instanceExtensionNames;
 extern std::vector<ccstr> g_layerNames;
 extern std::vector<ccstr> g_deviceExtensionNames;
 namespace myvk {
-
-Application::Application() {}
-
-Application::~Application() {}
-
 Application* Application::GetInstance() {
   std::call_once(sm_onlyOnce, [] { sm_instance.reset(new Application); });
   return sm_instance.get();
@@ -49,46 +44,44 @@ void Application::initialize() {
     g_instanceExtensionNames.push_back(glfwRequiredExtension[i]);
   }
 
-  m_instanceObj.create(g_layerNames, g_instanceExtensionNames, title);
-
-  m_rendererObj = std::make_unique<Renderer>();
-  m_rendererObj->createWindow(m_instanceObj);
-
-  vkb::PhysicalDeviceSelector selector{m_instanceObj,
-                                       m_rendererObj->m_surface};
-
-  auto selection = selector.set_minimum_version(1, 1)
-                       .add_desired_extensions(g_deviceExtensionNames)
-                       .select();
-
-  assert(selection.has_value());
-  vkb::PhysicalDevice physicalDevice = selection.value();
-
-  m_deviceObj = std::make_unique< ezvk::Device>();
-  m_deviceObj->create(physicalDevice);
-
+  m_instanceObj.create(g_layerNames, g_instanceExtensionNames,
+                       [](vkb::InstanceBuilder& builder) {
+                         builder.set_app_name("__AppName__")
+                             .set_engine_name("__AppName__")
+                             .set_app_version(1)
+                             .set_engine_version(1)
+                             .require_api_version(1, 2);
+                       });
+  m_rendererObj.createWindow(m_instanceObj);
+  m_deviceObj.create(
+      m_instanceObj,
+      [](vkb::PhysicalDeviceSelector& selector) {
+        selector.set_minimum_version(1, 1).add_desired_extensions(
+            g_deviceExtensionNames);
+      },
+      m_rendererObj.m_surface);
   m_allocator.create(getVkPhysicalDevice(), getVkDevice(), getVkInstance());
-  m_rendererObj->create(this);
+  m_rendererObj.create(this);
 }
 
 void Application::deInitialize() {
-  m_rendererObj->destroy();
-  m_rendererObj->destroyWindow(m_instanceObj);
+  m_rendererObj.destroy();
+  m_rendererObj.destroyWindow(m_instanceObj);
   m_allocator.destroy();
-  m_deviceObj->destroy();
+  m_deviceObj.destroy();
   m_instanceObj.destroy();
 }
 
 void Application::prepare() {
   m_isPrepared = false;
-  m_rendererObj->prepare();
+  m_rendererObj.prepare();
   m_isPrepared = true;
 }
 void Application::update() {}
 
 bool Application::render() {
-  m_rendererObj->render();
-  return m_rendererObj->windowShouldClose();
+  m_rendererObj.render();
+  return m_rendererObj.windowShouldClose();
 }
 
 } // namespace myvk

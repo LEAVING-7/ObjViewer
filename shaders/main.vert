@@ -17,6 +17,6 @@ layout(binding = 0) uniform MVP {
 void main() {
   gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPos, 1.0);
   outFragPos = vec3(ubo.model * vec4(inPos, 1.f));
-  outNorm = inNorm;
+  outNorm = mat3(transpose(inverse(ubo.model))) * inNorm;
   outUV = inUV;
 }

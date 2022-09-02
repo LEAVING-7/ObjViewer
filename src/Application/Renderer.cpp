@@ -11,16 +11,6 @@ namespace myvk {
 float g_frameBegin = 0;
 float g_frameEnd   = 0;
 
-std::vector<data::Vertex> g_axis = {
-    {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0}}, // original
-    {{9, 0, 0}, {1, 0, 0}, {0, 0, 0}, {0, 0}}, // x
-    {{0, 9, 0}, {0, 1, 0}, {0, 0, 0}, {0, 0}}, // y
-    {{0, 0, 9}, {0, 0, 1}, {0, 0, 0}, {0, 0}}, // z
-};
-
-std::vector<u16> g_axisIndices = {
-    1, 0, 2, 0, 3, 0,
-};
 ezvk::AllocatedBuffer g_axisVertexBuf;
 ezvk::AllocatedBuffer g_axisIndexBuf;
 struct UniformBufferObject {
@@ -31,7 +21,8 @@ struct UniformBufferObject {
 
 data::Light g_light{
     {5.f, 12.f, 0.f},
-    {1, 1, 1},
+    {1, 1, 1.f},
+    {},
 };
 
 void windowFramebufferResizeCallback(GLFWwindow* window, int width,
@@ -158,6 +149,8 @@ void Renderer::render() {
       .pClearValues    = clearValue,
   };
 
+  g_light.camPos = m_state.camera.m_eye;
+  m_lightBuffer.transferMemory(*m_application, (void*)&g_light);
   // automatically set cmdBuffer to initial
   currentData.cmdBuffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -239,6 +232,7 @@ void Renderer::createWindow(VkInstance instance, u32 width, u32 height) {
   glfwSetScrollCallback(m_window.m_window, camCallback);
   // .setInputMode(GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
+
 void Renderer::destroyWindow(VkInstance instance) {
   vkDestroySurfaceKHR(instance, m_surface, nullptr);
   m_window.destroy();
@@ -442,12 +436,17 @@ void Renderer::destroyFrameBuffer() {
 }
 
 void Renderer::createSwapchain() {
-  m_graphicQueueIndex = m_application->m_deviceObj->m_device
-                            .get_queue_index(vkb::QueueType::graphics)
-                            .value();
+  auto&& device = m_application->m_deviceObj.m_device;
+  m_graphicQueueIndex =
+      device.get_queue_index(vkb::QueueType::graphics).value();
   m_swapchainObj = std::make_unique<ezvk::Swapchain>();
-  m_swapchainObj->create(&m_application->m_deviceObj.get()->m_device, m_surface,
-                         m_window.m_width, m_window.m_height);
+
+  m_swapchainObj->create(
+      device, m_surface, m_window.m_width, m_window.m_height,
+      [](vkb::SwapchainBuilder& builder) {
+        builder.use_default_format_selection().set_desired_present_mode(
+            VK_PRESENT_MODE_FIFO_KHR);
+      });
 }
 
 void Renderer::destroySwapchain() {
@@ -455,20 +454,20 @@ void Renderer::destroySwapchain() {
 }
 
 void Renderer::createShaders() {
-  auto vertResult = ezvk::readFromFile("shaders/main.vert.spv", "rb");
-  assert(vertResult.has_value());
+  auto [vertPtr, size] = ezvk::readFromFile("shaders/main.vert.spv", "rb");
+  assert(vertPtr);
 
   ezvk::Shader mainVert;
   mainVert.create(*m_application, "mainVert", VK_SHADER_STAGE_VERTEX_BIT,
-                  vertResult.value());
+                  (u32*)vertPtr.get(), size);
   m_shaders[mainVert.m_name] = std::move(mainVert);
 
-  auto fragResult = ezvk::readFromFile("shaders/main.frag.spv", "rb");
-  assert(fragResult.has_value());
+  auto [fragPtr, fragSize] = ezvk::readFromFile("shaders/main.frag.spv", "rb");
+  assert(fragPtr);
 
   ezvk::Shader mainFrag;
   mainFrag.create(*m_application, "mainFrag", VK_SHADER_STAGE_FRAGMENT_BIT,
-                  fragResult.value());
+                  (u32*)fragPtr.get(), fragSize);
   m_shaders[mainFrag.m_name] = std::move(mainFrag);
 }
 
@@ -479,7 +478,6 @@ void Renderer::destroyShaders() {
 }
 
 void Renderer::createDefaultPipeline() {
-
   VkPipelineLayoutCreateInfo defaultPipelineLayoutCI{
       .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       .pNext                  = nullptr,
@@ -489,7 +487,6 @@ void Renderer::createDefaultPipeline() {
       .pushConstantRangeCount = 0,
       .pPushConstantRanges    = nullptr,
   };
-
   vkCreatePipelineLayout(m_application->getVkDevice(), &defaultPipelineLayoutCI,
                          nullptr, &m_defaultPipelineLayout);
 
@@ -503,7 +500,6 @@ void Renderer::createDefaultPipeline() {
       m_defaultPipelineBuilder
           ->setShader({m_shaders["mainVert"].m_shaderInfo,
                        m_shaders["mainFrag"].m_shaderInfo})
-          // .setVertexInput()
           .setVertexAttributes(std::move(vertexDescription.attributes))
           .setVertexBindings(std::move(vertexDescription.bindings))
           .setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE)
@@ -543,28 +539,23 @@ void Renderer::destroyDefaultPipeline() {
 }
 
 void Renderer::getGraphicQueueAndQueueIndex() {
-  vkb::Device& device = m_application->m_deviceObj->m_device;
+  vkb::Device& device = m_application->m_deviceObj.m_device;
   m_graphicQueueIndex =
       device.get_queue_index(vkb::QueueType::graphics).value();
   m_graphicQueue = device.get_queue(vkb::QueueType::graphics).value();
 }
 
 void Renderer::createMesh() {
-  ezvk::BufferAllocator& allocator = m_application->m_allocator;
+  ezvk::Allocator& allocator = m_application->m_allocator;
   m_testModel = data::ObjModel("assets/space_shuttle/space-shuttle.obj");
   m_testModelVertexBuf = m_testModel.allocateVertices(allocator);
   m_testModelIndexBuf  = m_testModel.allocateIndices(allocator);
 
-  g_axisVertexBuf = allocator.createBuffer(
-      g_axis, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-  g_axisIndexBuf =
-      allocator.createBuffer(g_axisIndices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                             VMA_MEMORY_USAGE_CPU_TO_GPU);
   LOG_INFO("{} {}", m_testModel.indices.size(), m_testModel.vertices.size());
 }
 
 void Renderer::destroyMesh() {
-  ezvk::BufferAllocator& allocator = m_application->m_allocator;
+  ezvk::Allocator& allocator = m_application->m_allocator;
   allocator.destroyBuffer(m_testModelVertexBuf);
   allocator.destroyBuffer(m_testModelIndexBuf);
 
@@ -592,6 +583,8 @@ void Renderer::createDescriptorSets() {
       .add(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
            VK_SHADER_STAGE_FRAGMENT_BIT)
       .add(2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+           VK_SHADER_STAGE_FRAGMENT_BIT)
+      .add(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
            VK_SHADER_STAGE_FRAGMENT_BIT);
 
   m_uniformLayout.create(*m_application, bindingList.bindings);
@@ -634,13 +627,23 @@ void Renderer::createDescriptorSets() {
       .range  = VK_WHOLE_SIZE,
   };
 
+  VkDescriptorImageInfo specInfo{
+      m_testSpecSampler,
+      m_testSpecImageView,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+  };
+
   VkDescriptorImageInfo imageInfo{
-      .sampler     = m_testTextureSampler.sampler,
-      .imageView   = m_testTextureImageView.imageView,
+      .sampler     = m_testDiffuseSampler.sampler,
+      .imageView   = m_testDiffuseImageView.imageView,
       .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
   };
 
   for (u32 i = 0; i < m_uniformSets.size(); ++i) {
+    ezvk::WriteDescriptorSet writeSets;
+    // writeSets.addBuffer(VkDescriptorSet dstSet, u32 dstBinding, u32
+    // dstArrayElement, u32 descriptorCount, VkDescriptorType descriptorType,
+    // const VkDescriptorBufferInfo *pBufferInfo)
     VkWriteDescriptorSet writeSet{
         .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         .pNext           = nullptr,
@@ -663,6 +666,7 @@ void Renderer::createDescriptorSets() {
         .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .pImageInfo      = &imageInfo,
     };
+
     vkUpdateDescriptorSets(*m_application, 1, &samplerWriteSet, 0, nullptr);
     VkWriteDescriptorSet lightWriteSet{
         .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -675,6 +679,17 @@ void Renderer::createDescriptorSets() {
         .pBufferInfo     = &lightBufferInfo,
     };
     vkUpdateDescriptorSets(*m_application, 1, &lightWriteSet, 0, nullptr);
+    VkWriteDescriptorSet specWriteSet{
+        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .pNext           = nullptr,
+        .dstSet          = m_uniformSets[i],
+        .dstBinding      = bindingList.bindings[3].binding,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .pImageInfo      = &specInfo,
+    };
+    vkUpdateDescriptorSets(*m_application, 1, &specWriteSet, 0, nullptr);
   }
 }
 
@@ -688,29 +703,46 @@ void Renderer::destroyDescriptorSets() {
 }
 
 void Renderer::createTextures() {
-  m_testTexture.create(m_application->m_allocator, m_transientCmdPool,
+  m_testDiffuse.create(m_application->m_allocator, m_transientCmdPool,
                        "assets/space_shuttle/ShuttleDiffuseMap.jpg",
                        m_graphicQueue, *m_application);
 
-  m_testTextureImageView.create(
-      *m_application, m_testTexture.image.image, VK_IMAGE_VIEW_TYPE_2D,
+  m_testDiffuseImageView.create(
+      *m_application, m_testDiffuse.image.image, VK_IMAGE_VIEW_TYPE_2D,
       VK_FORMAT_R8G8B8A8_SRGB, {},
       ezvk::defaultImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT));
 
   auto maxAnisotropy =
-      m_application->m_deviceObj->m_gpu.properties.limits.maxSamplerAnisotropy;
+      m_application->m_deviceObj.m_gpu.properties.limits.maxSamplerAnisotropy;
+  m_testDiffuseSampler.createNearestRepeatNoAnisotropy(
+      *m_application, VK_COMPARE_OP_ALWAYS, VK_BORDER_COLOR_INT_OPAQUE_BLACK);
+  // m_testDiffuseSampler.create(
+  //     *m_application, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+  //     VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT,
+  //     VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f,
+  //     VK_FALSE, maxAnisotropy, VK_FALSE, VK_COMPARE_OP_ALWAYS, 0.f, 0.f,
+  //     VK_BORDER_COLOR_INT_OPAQUE_BLACK, VK_FALSE);
 
-  m_testTextureSampler.create(
-      *m_application, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
-      VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT,
-      VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.f,
-      VK_FALSE, maxAnisotropy, VK_FALSE, VK_COMPARE_OP_ALWAYS, 0.f, 0.f,
-      VK_BORDER_COLOR_INT_OPAQUE_BLACK, VK_FALSE);
+  m_testSpec.create(*m_application, m_transientCmdPool,
+                    "assets/space_shuttle/ShuttleSpecMap.jpg", m_graphicQueue,
+                    *m_application);
+
+  m_testSpecImageView.create(
+      *m_application, m_testSpec.image.image, VK_IMAGE_VIEW_TYPE_2D,
+      VK_FORMAT_R8G8B8A8_SRGB, {},
+      ezvk::defaultImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT));
+
+  m_testSpecSampler.createNearestRepeatNoAnisotropy(
+      *m_application, VK_COMPARE_OP_ALWAYS, VK_BORDER_COLOR_INT_OPAQUE_BLACK);
 }
 
 void Renderer::destroyTextures() {
-  m_testTextureSampler.destroy(*m_application);
-  m_testTextureImageView.destroy(*m_application);
-  m_testTexture.destroy(m_application->m_allocator);
+  m_testDiffuseSampler.destroy(*m_application);
+  m_testDiffuseImageView.destroy(*m_application);
+  m_testDiffuse.destroy(m_application->m_allocator);
+
+  m_testSpecSampler.destroy(*m_application);
+  m_testSpecImageView.destroy(*m_application);
+  m_testSpec.destroy(*m_application);
 }
 } // namespace myvk

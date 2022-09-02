@@ -6,9 +6,9 @@
 
 namespace myvk::data {
 
-void TextureImage::create(ezvk::BufferAllocator& allocator,
-                          ezvk::CommandPool cmdPool, ccstr filename,
-                          VkQueue transferQueue, VkDevice device) {
+void TextureImage::create(ezvk::Allocator& allocator, ezvk::CommandPool cmdPool,
+                          ccstr filename, VkQueue transferQueue,
+                          VkDevice device) {
   stbi_uc* pixel =
       stbi_load(filename, &width, &height, &channels, STBI_rgb_alpha);
   size_t imageSize = width * height * 4;
@@ -84,7 +84,7 @@ void TextureImage::create(ezvk::BufferAllocator& allocator,
   stbi_image_free(pixel);
 }
 
-void TextureImage::destroy(ezvk::BufferAllocator& allocator) {
+void TextureImage::destroy(ezvk::Allocator& allocator) {
   allocator.destroyImage(image);
 }
 
